@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+client/node_modules/
+
+# Build
+client/dist/
+dist/
+
+# Biến môi trường & bí mật (KHÔNG commit)
+.env
+.env.local
+client/.env
+client/.env.local
+migration/serviceAccount.json
+
+# Log & tạm
+*.log
+npm-debug.log*
+.DS_Store
+
+# Công cụ preview nội bộ (không cần cho production)
+dev-preview.cmd

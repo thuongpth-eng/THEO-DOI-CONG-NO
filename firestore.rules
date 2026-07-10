@@ -1,0 +1,40 @@
+rules_version = '2';
+
+// Quy tắc bảo mật Firestore cho HPC Receivable.
+// - Mọi người đã đăng nhập: được XEM.
+// - Kế toán (kt) & PM: được SỬA dữ liệu công nợ.
+// - TGĐ/PTGĐ (admin): được quản lý người dùng.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function role() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    function canEdit() {
+      return signedIn() && role() in ['kt', 'pm'];
+    }
+    function isAdmin() {
+      return signedIn() && role() in ['tgd', 'ptgd'];
+    }
+
+    match /customers/{id} {
+      allow read: if signedIn();
+      allow write: if canEdit();
+    }
+    match /contracts/{id} {
+      allow read: if signedIn();
+      allow write: if canEdit();
+    }
+    match /installments/{id} {
+      allow read: if signedIn();
+      allow write: if canEdit();
+    }
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

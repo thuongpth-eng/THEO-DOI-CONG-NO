@@ -229,7 +229,71 @@ export default function ContractDetail() {
         )}
       </div>
 
-      <div className="mt-3 rounded-2xl border border-line bg-card shadow-card">
+      {/* Danh sách dạng thẻ — điện thoại (<768px) */}
+      <div className="mt-3 space-y-3 md:hidden">
+        {rows.map((r) => {
+          const late = daysLate(r);
+          return (
+            <div key={r.id} className="rounded-xl border border-line bg-card p-4 shadow-card">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-semibold text-ink">{r.dot}</div>
+                  <div className="mt-0.5 text-xs text-sub">{r.hoso}</div>
+                </div>
+                <StatusBadge status={r.status} />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 border-t border-line pt-3 text-sm">
+                <div>
+                  <div className="text-[11px] text-faint">Giá trị</div>
+                  <div className="tabular-nums text-sub">{fmtVND(r.value)}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[11px] text-faint">Còn lại</div>
+                  <div className="font-semibold tabular-nums text-ink">{fmtVND(outstanding(r))}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-faint">Đã thu</div>
+                  <div className="tabular-nums text-brand-500">{fmtVND(r.paid)}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[11px] text-faint">Đến hạn</div>
+                  <div className="text-sub">
+                    {fmtDate(r.ngayDenHan)}
+                    {late > 0 && <span className="ml-1 font-semibold text-danger">trễ {late}n</span>}
+                  </div>
+                </div>
+              </div>
+              {r.ghichu && (
+                <div className="mt-2 text-xs italic text-warning">{r.ghichu}</div>
+              )}
+              {canEdit && (
+                <div className="mt-3 flex gap-2 border-t border-line pt-3">
+                  <button
+                    onClick={() => openEdit(r)}
+                    className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-lg border border-line text-sm font-medium text-sub"
+                  >
+                    <Pencil size={15} /> Sửa
+                  </button>
+                  <button
+                    onClick={() => delInst(r)}
+                    className="flex min-h-[44px] items-center justify-center rounded-lg border border-line px-4 text-danger"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {rows.length === 0 && (
+          <div className="rounded-xl border border-line bg-card px-4 py-10 text-center text-faint">
+            Chưa có đợt thanh toán. Bấm “Thêm đợt”.
+          </div>
+        )}
+      </div>
+
+      {/* Bảng — tablet & desktop (≥768px) */}
+      <div className="mt-3 hidden rounded-2xl border border-line bg-card shadow-card md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

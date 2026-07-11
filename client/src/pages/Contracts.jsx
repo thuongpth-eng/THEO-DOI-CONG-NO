@@ -133,7 +133,49 @@ export default function Contracts() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-line bg-card shadow-card">
+      {/* Danh sách dạng thẻ — điện thoại (<768px) */}
+      <div className="space-y-3 md:hidden">
+        {rows.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => nav(`/contracts/${c.id}`)}
+            className="block w-full rounded-xl border border-line bg-card p-4 text-left shadow-card"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="truncate font-semibold text-ink">{c.name}</span>
+                  {c.late && (
+                    <span className="rounded bg-danger/15 px-1.5 py-0.5 text-[10px] font-semibold text-danger">
+                      QUÁ HẠN
+                    </span>
+                  )}
+                </div>
+                <div className="mt-0.5 truncate text-xs text-faint">{c.customerName}</div>
+              </div>
+              <ChevronRight size={18} className="shrink-0 text-faint" />
+            </div>
+            <div className="mt-3 flex items-center justify-between border-t border-line pt-3 text-sm">
+              <div>
+                <div className="text-[11px] text-faint">Còn phải thu</div>
+                <div className="font-semibold tabular-nums text-brand-500">{fmtVND(c.os)}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[11px] text-faint">{c.count} đợt · Giá trị HĐ</div>
+                <div className="tabular-nums text-sub">{fmtVND(c.totalAfterTax)}</div>
+              </div>
+            </div>
+          </button>
+        ))}
+        {rows.length === 0 && (
+          <div className="rounded-xl border border-line bg-card px-4 py-10 text-center text-faint">
+            Không tìm thấy công trình nào.
+          </div>
+        )}
+      </div>
+
+      {/* Bảng — tablet & desktop (≥768px) */}
+      <div className="hidden rounded-2xl border border-line bg-card shadow-card md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

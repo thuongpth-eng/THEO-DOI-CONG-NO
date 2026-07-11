@@ -115,7 +115,7 @@ export function printReport(contracts, installments) {
     .kpi{display:flex;gap:12px;margin:16px 0}
     .kpi div{flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:10px}
     .kpi .lbl{font-size:11px;color:#64748b}
-    .kpi .val{font-size:16px;font-weight:bold;color:#2563eb}
+    .kpi .val{font-size:16px;font-weight:bold;color:#4fa23a}
     table{width:100%;border-collapse:collapse;font-size:12px}
     th,td{border-bottom:1px solid #e2e8f0;padding:7px 8px;text-align:left}
     th{background:#f1f5f9;font-size:11px;text-transform:uppercase;color:#64748b}

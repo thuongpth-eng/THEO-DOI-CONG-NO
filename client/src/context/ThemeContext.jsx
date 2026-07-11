@@ -14,8 +14,9 @@ function apply(mode) {
 }
 
 export function ThemeProvider({ children }) {
-  const [mode, setMode] = useState(() => localStorage.getItem(LS_KEY) || "system");
-  const [isDark, setIsDark] = useState(() => apply(localStorage.getItem(LS_KEY) || "system"));
+  // HPCons: giao diện TỐI là mặc định
+  const [mode, setMode] = useState(() => localStorage.getItem(LS_KEY) || "dark");
+  const [isDark, setIsDark] = useState(() => apply(localStorage.getItem(LS_KEY) || "dark"));
 
   useEffect(() => {
     localStorage.setItem(LS_KEY, mode);

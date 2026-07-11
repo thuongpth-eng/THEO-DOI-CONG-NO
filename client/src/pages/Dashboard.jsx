@@ -16,10 +16,10 @@ import { fmtVND, fmtTy, outstanding, daysLate } from "../lib/models";
 import { useTheme } from "../context/ThemeContext";
 
 const COLORS = {
-  brand: "#2563eb",
-  green: "#10b981",
-  amber: "#f59e0b",
-  red: "#ef4444",
+  brand: "#60bb46", // xanh lá HPCons
+  green: "#4fa23a",
+  amber: "#ffa726", // warning HPCons
+  red: "#e53935", // danger HPCons
   slate: "#94a3b8",
 };
 

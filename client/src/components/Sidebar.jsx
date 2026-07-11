@@ -32,16 +32,16 @@ function Item({ to, label, icon: Icon, end }) {
       to={to}
       end={end}
       className={({ isActive }) =>
-        `flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+        `flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
           isActive
-            ? "bg-brandtint text-brandink"
-            : "text-sub hover:bg-hover hover:text-ink"
+            ? "bg-navactivebg text-navactivefg"
+            : "text-navdim hover:bg-navhover hover:text-navfg"
         }`
       }
     >
       {({ isActive }) => (
         <>
-          <Icon size={18} className={isActive ? "text-brandink" : "text-faint"} />
+          <Icon size={18} className={isActive ? "text-navactivefg" : "text-navdim"} />
           {label}
         </>
       )}
@@ -57,7 +57,7 @@ function ThemeToggle() {
     { key: "system", icon: Monitor, label: "Tự động" },
   ];
   return (
-    <div className="mb-2 flex gap-1 rounded-lg border border-line p-1">
+    <div className="mb-2 flex gap-1 rounded-lg border border-white/10 p-1">
       {opts.map((o) => {
         const Icon = o.icon;
         const active = mode === o.key;
@@ -66,8 +66,9 @@ function ThemeToggle() {
             key={o.key}
             onClick={() => setMode(o.key)}
             title={o.label}
-            className={`flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium transition-colors ${
-              active ? "bg-brandtint text-brandink" : "text-faint hover:bg-hover"
+            aria-label={o.label}
+            className={`flex min-h-[36px] flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium transition-colors ${
+              active ? "bg-navactivebg text-navactivefg" : "text-navdim hover:bg-navhover"
             }`}
           >
             <Icon size={14} />
@@ -83,29 +84,29 @@ export default function Sidebar({ open = false, onClose }) {
 
   return (
     <>
-      {/* Nền mờ khi mở menu trên điện thoại */}
+      {/* Nền mờ khi mở menu trên điện thoại/tablet */}
       {open && (
-        <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={onClose} />
+        <div className="fixed inset-0 z-40 bg-black/50 xl:hidden" onClick={onClose} />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col border-r border-line bg-card transition-transform duration-200 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col bg-nav text-navfg transition-transform duration-200 xl:static xl:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex items-center gap-2.5 px-5 py-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-white shadow-sm">
             <Wallet size={18} />
           </div>
           <div className="leading-tight">
-            <div className="text-sm font-bold text-ink">HPC Receivable</div>
-            <div className="text-[11px] text-faint">Công nợ &amp; dòng tiền</div>
+            <div className="text-sm font-bold text-navfg">HPC Receivable</div>
+            <div className="text-[11px] text-navdim">Công nợ &amp; dòng tiền</div>
           </div>
         </div>
 
         <a
           href={PORTAL_URL}
-          className="mx-3 mb-2 flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-sub hover:bg-hover hover:text-brandink"
+          className="mx-3 mb-2 flex min-h-[44px] items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-navdim hover:bg-navhover hover:text-navfg"
         >
           <ArrowLeft size={14} />
           Về HP CONS Portal
@@ -117,7 +118,7 @@ export default function Sidebar({ open = false, onClose }) {
           ))}
           {isAdmin && (
             <>
-              <div className="px-3 pb-1 pt-5 text-[11px] font-semibold uppercase tracking-wider text-faint">
+              <div className="px-3 pb-1 pt-5 text-[11px] font-semibold uppercase tracking-wider text-navdim">
                 Quản trị
               </div>
               {ADMIN.map((item) => (
@@ -127,24 +128,24 @@ export default function Sidebar({ open = false, onClose }) {
           )}
         </nav>
 
-        <div className="border-t border-line p-3">
+        <div className="border-t border-white/10 p-3">
           <ThemeToggle />
           <div className="flex items-center gap-3 px-2 py-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brandtint text-sm font-bold text-brandink">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-sm font-bold text-white">
               {(user?.name || "?").charAt(0)}
             </div>
             <div className="min-w-0 leading-tight">
-              <div className="truncate text-sm font-semibold text-ink">
+              <div className="truncate text-sm font-semibold text-navfg">
                 {user?.name || "Người dùng"}
               </div>
-              <div className="text-[11px] text-faint">{roleName}</div>
+              <div className="text-[11px] text-navdim">{roleName}</div>
             </div>
           </div>
           <button
             onClick={logout}
-            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sub hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"
+            className="mt-1 flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-navdim hover:bg-navhover hover:text-red-400"
           >
-            <LogOut size={18} className="text-faint" />
+            <LogOut size={18} />
             Đăng xuất
           </button>
         </div>

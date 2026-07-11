@@ -66,8 +66,8 @@ export default function App() {
       <Sidebar open={drawer} onClose={() => setDrawer(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Thanh trên cho điện thoại (ẩn ở màn lớn) */}
-        <div className="flex items-center gap-3 border-b border-line bg-card px-4 py-3 lg:hidden">
+        {/* Thanh trên cho điện thoại + tablet (ẩn ở desktop ≥1280px) */}
+        <div className="flex items-center gap-3 border-b border-line bg-card px-4 py-3 xl:hidden">
           <button
             onClick={() => setDrawer(true)}
             className="rounded-lg p-1.5 text-sub hover:bg-hover"
@@ -83,7 +83,7 @@ export default function App() {
           </div>
         </div>
 
-        <header className="px-5 py-5 sm:px-8 sm:py-6">
+        <header className="px-4 py-4 xl:px-6 xl:py-6">
           {isHome ? (
             <>
               <h1 className="text-xl font-bold text-ink sm:text-2xl">
@@ -96,7 +96,7 @@ export default function App() {
           )}
         </header>
 
-        <main className="flex-1 overflow-y-auto px-5 pb-10 sm:px-8">
+        <main className="flex-1 overflow-y-auto px-4 pb-10 xl:px-6">
           <Routes>
             <Route path="/" element={<Overview />} />
             <Route path="/contracts" element={<Contracts />} />

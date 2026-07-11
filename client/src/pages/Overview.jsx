@@ -147,7 +147,34 @@ export default function Overview() {
             {contracts.length} công trình · sắp theo còn phải thu
           </p>
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Danh sách dạng thẻ — điện thoại */}
+        <div className="space-y-2 p-3 md:hidden">
+          {byContract
+            .slice()
+            .sort((a, b) => b.outstanding - a.outstanding)
+            .map((c) => (
+              <div key={c.id} className="rounded-xl border border-line p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate font-semibold text-ink">{c.name}</span>
+                  {c.late && (
+                    <span className="shrink-0 rounded bg-danger/15 px-1.5 py-0.5 text-[10px] font-semibold text-danger">
+                      QUÁ HẠN
+                    </span>
+                  )}
+                </div>
+                <div className="mt-0.5 truncate text-xs text-faint">{c.customerName}</div>
+                <div className="mt-2 flex items-end justify-between">
+                  <span className="text-[11px] text-faint">Còn phải thu</span>
+                  <span className="font-semibold tabular-nums text-brand-500">
+                    {fmtVND(c.outstanding)}
+                  </span>
+                </div>
+              </div>
+            ))}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">

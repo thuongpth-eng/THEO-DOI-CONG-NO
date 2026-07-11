@@ -11,16 +11,29 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Màu nhấn chính - xanh royal theo HP CONS Portal
+        // Màu thương hiệu HPCons — xanh lá #60BB46
         brand: {
-          50: "#eff6ff",
-          100: "#dbeafe",
-          200: "#bfdbfe",
-          400: "#60a5fa",
-          500: "#3b82f6",
-          600: "#2563eb", // màu chủ đạo
-          700: "#1d4ed8",
+          50: "#eef8ea",
+          100: "#d3edc9",
+          200: "#aadd98",
+          400: "#7cc95f",
+          500: "#60bb46", // brand-primary
+          600: "#4fa23a",
+          700: "#3f8330",
         },
+        // Màu nhấn HPCons — xanh dương
+        accent: "#0969a7",
+        // Màu trạng thái HPCons
+        danger: "#e53935",
+        warning: "#ffa726",
+        muted: "#9e9e9e",
+        // Thanh điều hướng (dark rail)
+        nav: "var(--nav)",
+        navfg: "var(--nav-fg)",
+        navdim: "var(--nav-fg-dim)",
+        navhover: "var(--nav-hover)",
+        navactivebg: "var(--nav-active-bg)",
+        navactivefg: "var(--nav-active-fg)",
         // Token theo "biến màu" — tự đổi sáng/tối (định nghĩa ở index.css)
         page: "var(--page)",
         card: "var(--card)",

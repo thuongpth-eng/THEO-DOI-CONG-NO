@@ -8,7 +8,7 @@ export default function Modal({ open, onClose, title, children, footer, wide }) 
       onMouseDown={onClose}
     >
       <div
-        className={`mt-6 w-full ${wide ? "max-w-2xl" : "max-w-lg"} rounded-2xl bg-card shadow-xl`}
+        className={`mt-6 w-full ${wide ? "max-w-2xl" : "max-w-lg"} rounded-xl bg-card shadow-xl`}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line px-5 py-4">

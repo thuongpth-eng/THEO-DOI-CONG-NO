@@ -102,7 +102,7 @@ function buildForecast(installments, customers) {
 
 function ChartCard({ icon: Icon, title, subtitle, children, empty }) {
   return (
-    <div className="rounded-2xl border border-line bg-card p-5 shadow-card">
+    <div className="rounded-xl border border-line bg-card p-4 shadow-card">
       <div className="mb-4 flex items-center gap-2">
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/15 text-brand-600 dark:text-brand-400">
           <Icon size={16} />
@@ -163,7 +163,7 @@ export default function Dashboard() {
   const tipItem = { color: isDark ? "#cbd5e1" : "#334155" };
 
   return (
-    <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       {/* 1. Dòng tiền theo tháng */}
       <ChartCard
         icon={TrendingUp}

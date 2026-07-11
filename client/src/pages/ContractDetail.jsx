@@ -168,7 +168,7 @@ export default function ContractDetail() {
       </Link>
 
       {/* Thông tin công trình */}
-      <div className="rounded-2xl border border-line bg-card p-5 shadow-card">
+      <div className="rounded-xl border border-line bg-card p-4 shadow-card">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -293,7 +293,7 @@ export default function ContractDetail() {
       </div>
 
       {/* Bảng — tablet & desktop (≥768px) */}
-      <div className="mt-3 hidden rounded-2xl border border-line bg-card shadow-card md:block">
+      <div className="mt-3 hidden rounded-xl border border-line bg-card shadow-card md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

@@ -42,7 +42,7 @@ export default function Login() {
         {/* Form */}
         <form
           onSubmit={submit}
-          className="rounded-2xl border border-line bg-card p-6 shadow-card"
+          className="rounded-xl border border-line bg-card p-6 shadow-card"
         >
           <h2 className="mb-4 text-base font-semibold text-ink">Đăng nhập</h2>
 
@@ -80,7 +80,7 @@ export default function Login() {
 
         {/* Đăng nhập nhanh (chỉ hiện ở chế độ local để thử) */}
         {!isCloud && (
-          <div className="mt-4 rounded-2xl border border-dashed border-line bg-card/60 p-4">
+          <div className="mt-4 rounded-xl border border-dashed border-line bg-card/60 p-4">
             <p className="mb-2 text-xs font-medium text-sub">
               Đăng nhập nhanh (bản thử — mật khẩu: 123456)
             </p>

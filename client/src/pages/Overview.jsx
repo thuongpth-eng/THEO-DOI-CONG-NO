@@ -22,7 +22,7 @@ function KpiCard({ icon: Icon, label, value, sub, tone = "brand" }) {
     slate: "bg-slate-500/15 text-sub",
   };
   return (
-    <div className="rounded-2xl border border-line bg-card p-5 shadow-card">
+    <div className="rounded-xl border border-line bg-card p-4 shadow-card">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-sub">{label}</span>
         <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${tones[tone]}`}>
@@ -140,7 +140,7 @@ export default function Overview() {
       </div>
 
       {/* Bảng công trình */}
-      <div className="mt-6 rounded-2xl border border-line bg-card shadow-card">
+      <div className="mt-6 rounded-xl border border-line bg-card shadow-card">
         <div className="border-b border-line px-5 py-4">
           <h2 className="text-base font-semibold text-ink">Công nợ theo công trình</h2>
           <p className="text-xs text-faint">

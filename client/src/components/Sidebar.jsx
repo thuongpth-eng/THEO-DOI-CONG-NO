@@ -34,14 +34,14 @@ function Item({ to, label, icon: Icon, end }) {
       className={({ isActive }) =>
         `flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
           isActive
-            ? "bg-navactivebg text-navactivefg"
+            ? "bg-brand-500 text-white"
             : "text-navdim hover:bg-navhover hover:text-navfg"
         }`
       }
     >
       {({ isActive }) => (
         <>
-          <Icon size={18} className={isActive ? "text-navactivefg" : "text-navdim"} />
+          <Icon size={18} className={isActive ? "text-white" : "text-navdim"} />
           {label}
         </>
       )}
@@ -90,7 +90,7 @@ export default function Sidebar({ open = false, onClose }) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col bg-nav text-navfg transition-transform duration-200 xl:static xl:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[260px] shrink-0 flex-col bg-nav text-navfg transition-transform duration-200 xl:static xl:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >

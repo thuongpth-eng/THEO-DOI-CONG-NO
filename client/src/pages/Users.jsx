@@ -41,7 +41,7 @@ export default function Users() {
 
       {/* Bảng người dùng (chỉ bản thử local) */}
       {!isCloud && (
-        <div className="rounded-2xl border border-line bg-card shadow-card">
+        <div className="rounded-xl border border-line bg-card shadow-card">
           <div className="border-b border-line px-5 py-4">
             <h2 className="text-base font-semibold text-ink">Người dùng &amp; vai trò</h2>
             <p className="text-xs text-faint">{DEMO_USERS.length} tài khoản</p>

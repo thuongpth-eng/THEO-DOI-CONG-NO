@@ -175,7 +175,7 @@ export default function Contracts() {
       </div>
 
       {/* Bảng — tablet & desktop (≥768px) */}
-      <div className="hidden rounded-2xl border border-line bg-card shadow-card md:block">
+      <div className="hidden rounded-xl border border-line bg-card shadow-card md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

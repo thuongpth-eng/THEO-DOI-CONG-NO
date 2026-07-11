@@ -18,7 +18,7 @@ function todayVN() {
 
 function Placeholder({ title }) {
   return (
-    <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-line bg-card/50 text-faint">
+    <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-line bg-card/50 text-faint">
       Trang “{title}” sẽ được xây ở giai đoạn tiếp theo.
     </div>
   );
@@ -67,7 +67,7 @@ export default function App() {
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Thanh trên cho điện thoại + tablet (ẩn ở desktop ≥1280px) */}
-        <div className="flex items-center gap-3 border-b border-line bg-card px-4 py-3 xl:hidden">
+        <div className="flex h-14 items-center gap-3 border-b border-line bg-card px-4 xl:hidden">
           <button
             onClick={() => setDrawer(true)}
             className="rounded-lg p-1.5 text-sub hover:bg-hover"

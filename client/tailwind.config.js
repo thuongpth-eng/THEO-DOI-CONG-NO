@@ -7,6 +7,7 @@ const D = dirname(fileURLToPath(import.meta.url)).replace(/\\/g, "/");
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [`${D}/index.html`, `${D}/src/**/*.{js,jsx}`],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
@@ -20,6 +21,16 @@ export default {
           600: "#2563eb", // màu chủ đạo
           700: "#1d4ed8",
         },
+        // Token theo "biến màu" — tự đổi sáng/tối (định nghĩa ở index.css)
+        page: "var(--page)",
+        card: "var(--card)",
+        hover: "var(--hover)",
+        ink: "var(--ink)",
+        sub: "var(--sub)",
+        faint: "var(--faint)",
+        line: "var(--line)",
+        brandtint: "var(--brand-tint)",
+        brandink: "var(--brand-ink)",
       },
       fontFamily: {
         sans: ["Inter", "Segoe UI", "system-ui", "sans-serif"],

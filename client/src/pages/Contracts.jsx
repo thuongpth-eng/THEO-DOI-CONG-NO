@@ -60,7 +60,6 @@ export default function Contracts() {
   async function saveContract() {
     if (!form.name.trim()) return alert("Vui lòng nhập tên công trình.");
     setSaving(true);
-    // Xử lý khách hàng: chọn có sẵn hoặc tạo mới
     let customerId, customerName;
     if (form.newCustomer.trim()) {
       customerName = form.newCustomer.trim();
@@ -92,7 +91,7 @@ export default function Contracts() {
   }
 
   if (loading)
-    return <div className="py-20 text-center text-slate-400">Đang tải…</div>;
+    return <div className="py-20 text-center text-faint">Đang tải…</div>;
 
   const rows = contracts
     .map((c) => {
@@ -116,28 +115,29 @@ export default function Contracts() {
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="relative max-w-xs flex-1">
-          <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
+          <Search size={16} className="absolute left-3 top-2.5 text-faint" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Tìm công trình / khách hàng…"
-            className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-lg border border-line bg-card py-2 pl-9 pr-3 text-sm text-ink outline-none placeholder:text-faint focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
           />
         </div>
         {canEdit && (
           <Btn onClick={() => setModal(true)}>
             <span className="flex items-center gap-1.5">
-              <Plus size={16} /> Thêm hợp đồng
+              <Plus size={16} /> <span className="hidden sm:inline">Thêm hợp đồng</span>
+              <span className="sm:hidden">Thêm</span>
             </span>
           </Btn>
         )}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-card">
+      <div className="rounded-2xl border border-line bg-card shadow-card">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wider text-slate-400">
+              <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
                 <th className="px-5 py-3 font-medium">Công trình</th>
                 <th className="px-5 py-3 font-medium">Chủ đầu tư</th>
                 <th className="px-5 py-3 text-center font-medium">Số đợt</th>
@@ -151,35 +151,35 @@ export default function Contracts() {
                 <tr
                   key={c.id}
                   onClick={() => nav(`/contracts/${c.id}`)}
-                  className="cursor-pointer border-b border-slate-50 last:border-0 hover:bg-slate-50/60"
+                  className="cursor-pointer border-b border-line/60 last:border-0 hover:bg-hover"
                 >
-                  <td className="px-5 py-3 font-semibold text-slate-800">
+                  <td className="px-5 py-3 font-semibold text-ink">
                     <div className="flex items-center gap-2">
                       {c.name}
                       {c.late && (
-                        <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-600">
+                        <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 dark:text-red-400">
                           QUÁ HẠN
                         </span>
                       )}
                     </div>
-                    <div className="text-xs font-normal text-slate-400">{c.code}</div>
+                    <div className="text-xs font-normal text-faint">{c.code}</div>
                   </td>
-                  <td className="px-5 py-3 text-slate-500">{c.customerName}</td>
-                  <td className="px-5 py-3 text-center text-slate-500">{c.count}</td>
-                  <td className="px-5 py-3 text-right tabular-nums text-slate-500">
+                  <td className="px-5 py-3 text-sub">{c.customerName}</td>
+                  <td className="px-5 py-3 text-center text-sub">{c.count}</td>
+                  <td className="px-5 py-3 text-right tabular-nums text-sub">
                     {fmtVND(c.totalAfterTax)}
                   </td>
-                  <td className="px-5 py-3 text-right font-semibold tabular-nums text-slate-800">
+                  <td className="px-5 py-3 text-right font-semibold tabular-nums text-ink">
                     {fmtVND(c.os)}
                   </td>
-                  <td className="px-2 py-3 text-slate-300">
+                  <td className="px-2 py-3 text-faint">
                     <ChevronRight size={16} />
                   </td>
                 </tr>
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-10 text-center text-slate-400">
+                  <td colSpan={6} className="px-5 py-10 text-center text-faint">
                     Không tìm thấy công trình nào.
                   </td>
                 </tr>

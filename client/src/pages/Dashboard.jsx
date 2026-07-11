@@ -13,6 +13,7 @@ import {
 import { TrendingUp, CalendarClock, Users, AlertTriangle } from "lucide-react";
 import api from "../lib/data";
 import { fmtVND, fmtTy, outstanding, daysLate } from "../lib/models";
+import { useTheme } from "../context/ThemeContext";
 
 const COLORS = {
   brand: "#2563eb",
@@ -22,7 +23,6 @@ const COLORS = {
   slate: "#94a3b8",
 };
 
-// ----- Tính toán dữ liệu cho các biểu đồ -----
 function monthKey(s) {
   if (!s) return null;
   const [y, m] = s.split("-");
@@ -100,21 +100,20 @@ function buildForecast(installments, customers) {
     .sort((a, b) => a.ngayDenHan.localeCompare(b.ngayDenHan));
 }
 
-// ----- Thành phần khung biểu đồ -----
 function ChartCard({ icon: Icon, title, subtitle, children, empty }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+    <div className="rounded-2xl border border-line bg-card p-5 shadow-card">
       <div className="mb-4 flex items-center gap-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/15 text-brand-600 dark:text-brand-400">
           <Icon size={16} />
         </span>
         <div>
-          <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
-          {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
+          <h3 className="text-sm font-semibold text-ink">{title}</h3>
+          {subtitle && <p className="text-xs text-faint">{subtitle}</p>}
         </div>
       </div>
       {empty ? (
-        <div className="flex h-56 items-center justify-center text-sm text-slate-400">
+        <div className="flex h-56 items-center justify-center text-sm text-faint">
           Chưa có dữ liệu phù hợp.
         </div>
       ) : (
@@ -128,6 +127,7 @@ const tip = (v) => fmtVND(v);
 const axisTy = (v) => fmtTy(v);
 
 export default function Dashboard() {
+  const { isDark } = useTheme();
   const [inst, setInst] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -141,13 +141,26 @@ export default function Dashboard() {
     })();
   }, []);
 
-  if (loading) return <div className="py-20 text-center text-slate-400">Đang tải…</div>;
+  if (loading) return <div className="py-20 text-center text-faint">Đang tải…</div>;
 
   const cashflow = buildCashflow(inst);
   const byCustomer = buildByCustomer(inst, customers);
   const aging = buildAging(inst);
   const forecast = buildForecast(inst, customers);
   const agingTotal = aging.reduce((s, b) => s + b.value, 0);
+
+  // Màu biểu đồ theo theme
+  const grid = isDark ? "#24314a" : "#f1f5f9";
+  const axis = isDark ? "#94a3b8" : "#64748b";
+  const axis2 = isDark ? "#64748b" : "#94a3b8";
+  const tipStyle = {
+    background: isDark ? "#111a2e" : "#ffffff",
+    border: `1px solid ${isDark ? "#24314a" : "#e2e8f0"}`,
+    borderRadius: 8,
+    fontSize: 12,
+  };
+  const tipLabel = { color: isDark ? "#e8eef7" : "#334155" };
+  const tipItem = { color: isDark ? "#cbd5e1" : "#334155" };
 
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
@@ -160,10 +173,10 @@ export default function Dashboard() {
       >
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={cashflow} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-            <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748b" }} />
-            <YAxis tickFormatter={axisTy} tick={{ fontSize: 11, fill: "#94a3b8" }} width={48} />
-            <Tooltip formatter={tip} labelStyle={{ color: "#334155" }} />
+            <CartesianGrid strokeDasharray="3 3" stroke={grid} vertical={false} />
+            <XAxis dataKey="month" tick={{ fontSize: 12, fill: axis }} />
+            <YAxis tickFormatter={axisTy} tick={{ fontSize: 11, fill: axis2 }} width={48} />
+            <Tooltip formatter={tip} contentStyle={tipStyle} labelStyle={tipLabel} itemStyle={tipItem} cursor={{ fill: grid }} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             <Bar dataKey="collected" name="Đã thu" fill={COLORS.green} radius={[4, 4, 0, 0]} isAnimationActive={false} />
             <Bar dataKey="due" name="Đến hạn" fill={COLORS.brand} radius={[4, 4, 0, 0]} isAnimationActive={false} />
@@ -179,20 +192,11 @@ export default function Dashboard() {
         empty={forecast.length === 0}
       >
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart
-            layout="vertical"
-            data={forecast}
-            margin={{ top: 4, right: 16, left: 8, bottom: 0 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-            <XAxis type="number" tickFormatter={axisTy} tick={{ fontSize: 11, fill: "#94a3b8" }} />
-            <YAxis
-              type="category"
-              dataKey="label"
-              width={140}
-              tick={{ fontSize: 11, fill: "#64748b" }}
-            />
-            <Tooltip formatter={tip} />
+          <BarChart layout="vertical" data={forecast} margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={grid} horizontal={false} />
+            <XAxis type="number" tickFormatter={axisTy} tick={{ fontSize: 11, fill: axis2 }} />
+            <YAxis type="category" dataKey="label" width={140} tick={{ fontSize: 11, fill: axis }} />
+            <Tooltip formatter={tip} contentStyle={tipStyle} labelStyle={tipLabel} itemStyle={tipItem} cursor={{ fill: grid }} />
             <Bar dataKey="value" name="Phải thu" fill={COLORS.amber} radius={[0, 4, 4, 0]} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
@@ -206,21 +210,17 @@ export default function Dashboard() {
         empty={byCustomer.length === 0}
       >
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart
-            layout="vertical"
-            data={byCustomer}
-            margin={{ top: 4, right: 16, left: 8, bottom: 0 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-            <XAxis type="number" tickFormatter={axisTy} tick={{ fontSize: 11, fill: "#94a3b8" }} />
+          <BarChart layout="vertical" data={byCustomer} margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={grid} horizontal={false} />
+            <XAxis type="number" tickFormatter={axisTy} tick={{ fontSize: 11, fill: axis2 }} />
             <YAxis
               type="category"
               dataKey="name"
               width={150}
-              tick={{ fontSize: 10, fill: "#64748b" }}
+              tick={{ fontSize: 10, fill: axis }}
               tickFormatter={(s) => (s.length > 24 ? s.slice(0, 22) + "…" : s)}
             />
-            <Tooltip formatter={tip} />
+            <Tooltip formatter={tip} contentStyle={tipStyle} labelStyle={tipLabel} itemStyle={tipItem} cursor={{ fill: grid }} />
             <Bar dataKey="value" name="Còn phải thu" fill={COLORS.brand} radius={[0, 4, 4, 0]} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
@@ -235,10 +235,10 @@ export default function Dashboard() {
       >
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={aging} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#64748b" }} />
-            <YAxis tickFormatter={axisTy} tick={{ fontSize: 11, fill: "#94a3b8" }} width={48} />
-            <Tooltip formatter={tip} />
+            <CartesianGrid strokeDasharray="3 3" stroke={grid} vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: axis }} />
+            <YAxis tickFormatter={axisTy} tick={{ fontSize: 11, fill: axis2 }} width={48} />
+            <Tooltip formatter={tip} contentStyle={tipStyle} labelStyle={tipLabel} itemStyle={tipItem} cursor={{ fill: grid }} />
             <Bar dataKey="value" name="Nợ quá hạn" radius={[4, 4, 0, 0]} isAnimationActive={false}>
               {aging.map((b, i) => (
                 <Cell key={i} fill={b.fill} />

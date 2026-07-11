@@ -2,8 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== Bảng màu SÁNG (mặc định) ===== */
 :root {
   color-scheme: light;
+  --page: #f7f8fa; /* nền trang */
+  --card: #ffffff; /* nền thẻ */
+  --hover: #f1f5f9; /* nền khi rê chuột */
+  --ink: #1e293b; /* chữ chính (slate-800) */
+  --sub: #64748b; /* chữ phụ (slate-500) */
+  --faint: #94a3b8; /* chữ mờ (slate-400) */
+  --line: #e2e8f0; /* viền (slate-200) */
+  --brand-tint: #eff6ff; /* nền nhấn nhạt */
+  --brand-ink: #1d4ed8; /* chữ trên nền nhấn */
+}
+
+/* ===== Bảng màu TỐI ===== */
+.dark {
+  color-scheme: dark;
+  --page: #0b1220;
+  --card: #111a2e;
+  --hover: #1e293b;
+  --ink: #e8eef7;
+  --sub: #94a3b8;
+  --faint: #64748b;
+  --line: #24314a;
+  --brand-tint: rgba(37, 99, 235, 0.18);
+  --brand-ink: #93c5fd;
 }
 
 html,
@@ -14,8 +38,9 @@ body,
 
 body {
   margin: 0;
-  background: #f7f8fa;
-  color: #1e293b;
+  background: var(--page);
+  color: var(--ink);
   font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }

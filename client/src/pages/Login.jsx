@@ -5,6 +5,8 @@ import { authBackend } from "../lib/auth";
 import { DEMO_USERS, ROLES } from "../lib/roles";
 import { Input, Btn } from "../components/Modal";
 
+const isCloud = authBackend === "firestore";
+
 export default function Login() {
   const { login } = useAuth();
   const [username, setUsername] = useState("");
@@ -26,47 +28,47 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f7f8fa] p-4">
+    <div className="flex min-h-screen items-center justify-center bg-page p-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-6 flex flex-col items-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm">
             <Wallet size={24} />
           </div>
-          <h1 className="mt-3 text-lg font-bold text-slate-800">HPC Receivable</h1>
-          <p className="text-sm text-slate-400">Theo dõi công nợ &amp; dòng tiền</p>
+          <h1 className="mt-3 text-lg font-bold text-ink">HPC Receivable</h1>
+          <p className="text-sm text-faint">Theo dõi công nợ &amp; dòng tiền</p>
         </div>
 
         {/* Form */}
         <form
           onSubmit={submit}
-          className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card"
+          className="rounded-2xl border border-line bg-card p-6 shadow-card"
         >
-          <h2 className="mb-4 text-base font-semibold text-slate-800">Đăng nhập</h2>
+          <h2 className="mb-4 text-base font-semibold text-ink">Đăng nhập</h2>
 
           {err && (
-            <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+            <div className="mb-3 rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600 dark:text-red-400">
               {err}
             </div>
           )}
 
-          <label className="mb-1 block text-sm font-medium text-slate-600">
-            Tên đăng nhập
+          <label className="mb-1 block text-sm font-medium text-sub">
+            {isCloud ? "Email đăng nhập" : "Tên đăng nhập"}
           </label>
           <Input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="VD: thuong"
+            placeholder={isCloud ? "ten@hpcons.com.vn" : "VD: thuong"}
+            autoComplete="username"
             autoFocus
           />
-          <label className="mb-1 mt-3 block text-sm font-medium text-slate-600">
-            Mật khẩu
-          </label>
+          <label className="mb-1 mt-3 block text-sm font-medium text-sub">Mật khẩu</label>
           <Input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••"
+            autoComplete="current-password"
           />
 
           <Btn type="submit" disabled={busy} className="mt-5 w-full">
@@ -77,9 +79,9 @@ export default function Login() {
         </form>
 
         {/* Đăng nhập nhanh (chỉ hiện ở chế độ local để thử) */}
-        {authBackend !== "firestore" && (
-          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white/60 p-4">
-            <p className="mb-2 text-xs font-medium text-slate-500">
+        {!isCloud && (
+          <div className="mt-4 rounded-2xl border border-dashed border-line bg-card/60 p-4">
+            <p className="mb-2 text-xs font-medium text-sub">
               Đăng nhập nhanh (bản thử — mật khẩu: 123456)
             </p>
             <div className="flex flex-wrap gap-2">
@@ -87,7 +89,7 @@ export default function Login() {
                 <button
                   key={u.username}
                   onClick={(e) => submit(e, u.username, u.password)}
-                  className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:border-brand-400 hover:text-brand-600"
+                  className="rounded-lg border border-line bg-card px-2.5 py-1 text-xs font-medium text-sub hover:border-brand-400 hover:text-brand-600"
                   title={u.name}
                 >
                   {ROLES[u.role]?.name || u.role}

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   TrendingUp,
   Building2,
-  Users,
   AlertTriangle,
   Wallet,
   FileSpreadsheet,
@@ -16,22 +15,22 @@ import { exportExcel, exportCSV, exportJSON, printReport } from "../lib/exporter
 
 function KpiCard({ icon: Icon, label, value, sub, tone = "brand" }) {
   const tones = {
-    brand: "bg-brand-50 text-brand-600",
-    green: "bg-emerald-50 text-emerald-600",
-    amber: "bg-amber-50 text-amber-600",
-    red: "bg-red-50 text-red-600",
-    slate: "bg-slate-100 text-slate-600",
+    brand: "bg-brand-500/15 text-brand-600 dark:text-brand-400",
+    green: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+    amber: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+    red: "bg-red-500/15 text-red-600 dark:text-red-400",
+    slate: "bg-slate-500/15 text-sub",
   };
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+    <div className="rounded-2xl border border-line bg-card p-5 shadow-card">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-500">{label}</span>
+        <span className="text-sm font-medium text-sub">{label}</span>
         <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${tones[tone]}`}>
           <Icon size={18} />
         </span>
       </div>
-      <div className="mt-3 text-2xl font-bold text-slate-800">{value}</div>
-      {sub && <div className="mt-1 text-xs text-slate-400">{sub}</div>}
+      <div className="mt-3 text-2xl font-bold text-ink">{value}</div>
+      {sub && <div className="mt-1 text-xs text-faint">{sub}</div>}
     </div>
   );
 }
@@ -57,12 +56,11 @@ export default function Overview() {
   }, []);
 
   if (loading) {
-    return <div className="py-20 text-center text-slate-400">Đang tải dữ liệu…</div>;
+    return <div className="py-20 text-center text-faint">Đang tải dữ liệu…</div>;
   }
 
   const s = summarize(installments);
 
-  // Còn phải thu theo từng công trình
   const byContract = contracts.map((c) => {
     const rows = installments.filter((i) => i.contractId === c.id);
     const os = rows.reduce((sum, r) => sum + outstanding(r), 0);
@@ -73,7 +71,7 @@ export default function Overview() {
   const ExportBtn = ({ icon: Icon, label, onClick }) => (
     <button
       onClick={onClick}
-      className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm hover:border-brand-400 hover:text-brand-600"
+      className="flex items-center gap-1.5 rounded-lg border border-line bg-card px-3 py-1.5 text-xs font-medium text-sub shadow-sm hover:border-brand-400 hover:text-brand-600"
     >
       <Icon size={14} /> {label}
     </button>
@@ -102,7 +100,7 @@ export default function Overview() {
       </div>
 
       {backendName === "local" && (
-        <div className="mb-5 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-500">
+        <div className="mb-5 flex items-center gap-2 rounded-lg border border-line bg-card px-4 py-2.5 text-sm text-sub">
           <AlertTriangle size={16} className="text-amber-500" />
           Đang chạy chế độ <b className="mx-1">thử nghiệm (local)</b> — dữ liệu thật
           đã chuyển từ file v31. Khi IT cắm Firebase, tự chuyển sang dữ liệu đám mây.
@@ -142,17 +140,17 @@ export default function Overview() {
       </div>
 
       {/* Bảng công trình */}
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white shadow-card">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h2 className="text-base font-semibold text-slate-800">Công nợ theo công trình</h2>
-          <p className="text-xs text-slate-400">
+      <div className="mt-6 rounded-2xl border border-line bg-card shadow-card">
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="text-base font-semibold text-ink">Công nợ theo công trình</h2>
+          <p className="text-xs text-faint">
             {contracts.length} công trình · sắp theo còn phải thu
           </p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wider text-slate-400">
+              <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
                 <th className="px-5 py-3 font-medium">Công trình</th>
                 <th className="px-5 py-3 font-medium">Chủ đầu tư</th>
                 <th className="px-5 py-3 text-right font-medium">Giá trị HĐ</th>
@@ -166,23 +164,23 @@ export default function Overview() {
                 .map((c) => (
                   <tr
                     key={c.id}
-                    className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60"
+                    className="border-b border-line/60 last:border-0 hover:bg-hover"
                   >
-                    <td className="px-5 py-3 font-semibold text-slate-800">
+                    <td className="px-5 py-3 font-semibold text-ink">
                       <div className="flex items-center gap-2">
                         {c.name}
                         {c.late && (
-                          <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-600">
+                          <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 dark:text-red-400">
                             QUÁ HẠN
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-slate-500">{c.customerName}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-slate-500">
+                    <td className="px-5 py-3 text-sub">{c.customerName}</td>
+                    <td className="px-5 py-3 text-right tabular-nums text-sub">
                       {fmtVND(c.totalAfterTax)}
                     </td>
-                    <td className="px-5 py-3 text-right font-semibold tabular-nums text-slate-800">
+                    <td className="px-5 py-3 text-right font-semibold tabular-nums text-ink">
                       {fmtVND(c.outstanding)}
                     </td>
                   </tr>

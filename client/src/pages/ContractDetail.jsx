@@ -30,12 +30,12 @@ const emptyInst = {
 function StatusBadge({ status }) {
   const tone =
     status >= 6
-      ? "bg-emerald-50 text-emerald-700"
+      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
       : status === 5
-      ? "bg-blue-50 text-blue-700"
+      ? "bg-blue-500/15 text-blue-600 dark:text-blue-400"
       : status >= 3
-      ? "bg-amber-50 text-amber-700"
-      : "bg-slate-100 text-slate-500";
+      ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+      : "bg-slate-500/15 text-sub";
   return (
     <span className={`rounded px-2 py-0.5 text-xs font-medium ${tone}`}>
       {statusName(status)}
@@ -52,7 +52,7 @@ export default function ContractDetail() {
   const [loading, setLoading] = useState(true);
 
   const [instModal, setInstModal] = useState(false);
-  const [editing, setEditing] = useState(null); // đợt đang sửa
+  const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyInst);
   const [ctModal, setCtModal] = useState(false);
   const [ctForm, setCtForm] = useState(null);
@@ -145,10 +145,10 @@ export default function ContractDetail() {
     nav("/contracts");
   }
 
-  if (loading) return <div className="py-20 text-center text-slate-400">Đang tải…</div>;
+  if (loading) return <div className="py-20 text-center text-faint">Đang tải…</div>;
   if (!contract)
     return (
-      <div className="py-20 text-center text-slate-400">
+      <div className="py-20 text-center text-faint">
         Không tìm thấy công trình.{" "}
         <Link to="/contracts" className="text-brand-600">
           Quay lại
@@ -162,28 +162,24 @@ export default function ContractDetail() {
     <div>
       <Link
         to="/contracts"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-600"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-sub hover:text-brand-600"
       >
         <ArrowLeft size={15} /> Danh sách công trình
       </Link>
 
       {/* Thông tin công trình */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+      <div className="rounded-2xl border border-line bg-card p-5 shadow-card">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Building2 size={18} className="text-brand-600" />
-              <h2 className="text-lg font-bold text-slate-800">{contract.name}</h2>
-              <span className="text-xs text-slate-400">{contract.code}</span>
+              <h2 className="text-lg font-bold text-ink">{contract.name}</h2>
+              <span className="text-xs text-faint">{contract.code}</span>
             </div>
-            <p className="mt-1 text-sm font-medium text-slate-600">
-              {contract.customerName}
-            </p>
-            {contract.work && (
-              <p className="mt-1 text-sm text-slate-500">{contract.work}</p>
-            )}
+            <p className="mt-1 text-sm font-medium text-sub">{contract.customerName}</p>
+            {contract.work && <p className="mt-1 text-sm text-sub">{contract.work}</p>}
             {contract.loc && (
-              <p className="mt-0.5 text-xs text-slate-400">📍 {contract.loc}</p>
+              <p className="mt-0.5 text-xs text-faint">📍 {contract.loc}</p>
             )}
           </div>
           {canEdit && (
@@ -196,7 +192,7 @@ export default function ContractDetail() {
                 }}
               >
                 <span className="flex items-center gap-1.5">
-                  <Pencil size={14} /> Sửa
+                  <Pencil size={14} /> <span className="hidden sm:inline">Sửa</span>
                 </span>
               </Btn>
               <Btn variant="ghost" className="text-red-600" onClick={delContract}>
@@ -206,37 +202,38 @@ export default function ContractDetail() {
           )}
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4 sm:grid-cols-4">
           <Stat label="Giá trị HĐ" value={fmtVND(contract.totalAfterTax)} />
-          <Stat label="Đã thu" value={fmtVND(s.totalPaid)} tone="text-emerald-600" />
-          <Stat label="Còn phải thu" value={fmtVND(s.outstanding)} tone="text-brand-600" />
+          <Stat label="Đã thu" value={fmtVND(s.totalPaid)} tone="text-emerald-600 dark:text-emerald-400" />
+          <Stat label="Còn phải thu" value={fmtVND(s.outstanding)} tone="text-brand-600 dark:text-brand-400" />
           <Stat
             label="Quá hạn"
             value={fmtVND(s.overdue)}
-            tone={s.overdue > 0 ? "text-red-600" : "text-slate-400"}
+            tone={s.overdue > 0 ? "text-red-600 dark:text-red-400" : "text-faint"}
           />
         </div>
       </div>
 
       {/* Bảng đợt thanh toán */}
       <div className="mt-6 flex items-center justify-between">
-        <h3 className="text-base font-semibold text-slate-800">
+        <h3 className="text-base font-semibold text-ink">
           Đợt thanh toán ({rows.length})
         </h3>
         {canEdit && (
           <Btn onClick={openAdd}>
             <span className="flex items-center gap-1.5">
-              <Plus size={16} /> Thêm đợt
+              <Plus size={16} /> <span className="hidden sm:inline">Thêm đợt</span>
+              <span className="sm:hidden">Thêm</span>
             </span>
           </Btn>
         )}
       </div>
 
-      <div className="mt-3 rounded-2xl border border-slate-200 bg-white shadow-card">
+      <div className="mt-3 rounded-2xl border border-line bg-card shadow-card">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wider text-slate-400">
+              <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
                 <th className="px-4 py-3 font-medium">Đợt</th>
                 <th className="px-4 py-3 font-medium">Nội dung</th>
                 <th className="px-4 py-3 text-right font-medium">Giá trị</th>
@@ -251,33 +248,35 @@ export default function ContractDetail() {
               {rows.map((r) => {
                 const late = daysLate(r);
                 return (
-                  <tr key={r.id} className="border-b border-slate-50 last:border-0 align-top">
-                    <td className="px-4 py-3 font-semibold text-slate-800 whitespace-nowrap">
+                  <tr key={r.id} className="border-b border-line/60 last:border-0 align-top">
+                    <td className="px-4 py-3 font-semibold text-ink whitespace-nowrap">
                       {r.dot}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      <div className="font-medium text-slate-700">{r.hoso}</div>
-                      <div className="max-w-md text-xs text-slate-400">{r.noidung}</div>
+                    <td className="px-4 py-3 text-sub">
+                      <div className="font-medium text-ink">{r.hoso}</div>
+                      <div className="max-w-md text-xs text-faint">{r.noidung}</div>
                       {r.ghichu && (
-                        <div className="mt-0.5 text-xs italic text-amber-600">{r.ghichu}</div>
+                        <div className="mt-0.5 text-xs italic text-amber-600 dark:text-amber-400">
+                          {r.ghichu}
+                        </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-600">
+                    <td className="px-4 py-3 text-right tabular-nums text-sub">
                       {fmtVND(r.value)}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-emerald-600">
+                    <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
                       {fmtVND(r.paid)}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold tabular-nums text-slate-800">
+                    <td className="px-4 py-3 text-right font-semibold tabular-nums text-ink">
                       {fmtVND(outstanding(r))}
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={r.status} />
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-slate-500">
+                    <td className="px-4 py-3 whitespace-nowrap text-sub">
                       {fmtDate(r.ngayDenHan)}
                       {late > 0 && (
-                        <div className="text-xs font-semibold text-red-600">
+                        <div className="text-xs font-semibold text-red-600 dark:text-red-400">
                           trễ {late} ngày
                         </div>
                       )}
@@ -287,13 +286,13 @@ export default function ContractDetail() {
                         <>
                           <button
                             onClick={() => openEdit(r)}
-                            className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-brand-600"
+                            className="rounded p-1.5 text-faint hover:bg-hover hover:text-brand-600"
                           >
                             <Pencil size={15} />
                           </button>
                           <button
                             onClick={() => delInst(r)}
-                            className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                            className="rounded p-1.5 text-faint hover:bg-red-500/10 hover:text-red-600"
                           >
                             <Trash2 size={15} />
                           </button>
@@ -305,7 +304,7 @@ export default function ContractDetail() {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-slate-400">
+                  <td colSpan={8} className="px-4 py-10 text-center text-faint">
                     Chưa có đợt thanh toán. Bấm “Thêm đợt”.
                   </td>
                 </tr>
@@ -451,10 +450,10 @@ export default function ContractDetail() {
   );
 }
 
-function Stat({ label, value, tone = "text-slate-800" }) {
+function Stat({ label, value, tone = "text-ink" }) {
   return (
     <div>
-      <div className="text-xs text-slate-400">{label}</div>
+      <div className="text-xs text-faint">{label}</div>
       <div className={`mt-0.5 text-sm font-bold tabular-nums ${tone}`}>{value}</div>
     </div>
   );

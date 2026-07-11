@@ -7,13 +7,13 @@ import {
   Users,
   LogOut,
   ArrowLeft,
-  Wallet,
   Sun,
   Moon,
   Monitor,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import Logo from "./Logo";
 
 const NAV = [
   { to: "/", label: "Tổng quan", icon: LayoutDashboard, end: true },
@@ -94,13 +94,15 @@ export default function Sidebar({ open = false, onClose }) {
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center gap-2.5 px-5 py-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-white shadow-sm">
-            <Wallet size={18} />
+        <div className="flex items-center gap-3 px-5 py-5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white p-1">
+            <Logo size={36} />
           </div>
-          <div className="leading-tight">
-            <div className="text-sm font-bold text-navfg">HPC Receivable</div>
-            <div className="text-[11px] text-navdim">Công nợ &amp; dòng tiền</div>
+          <div className="min-w-0 leading-snug">
+            <div className="text-[12.5px] font-bold uppercase tracking-wide text-navfg">
+              Kiểm soát hợp đồng chủ đầu tư
+            </div>
+            <div className="text-[11px] text-navdim">HP CONS</div>
           </div>
         </div>
 

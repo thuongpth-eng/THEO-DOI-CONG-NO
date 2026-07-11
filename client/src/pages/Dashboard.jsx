@@ -14,6 +14,11 @@ import { TrendingUp, CalendarClock, Users, AlertTriangle } from "lucide-react";
 import api from "../lib/data";
 import { fmtVND, fmtTy, outstanding, daysLate } from "../lib/models";
 import { useTheme } from "../context/ThemeContext";
+import { buildKpis, buildCustomerProgress, buildDueSoon, buildOverdue } from "../lib/dashboard";
+import KpiStrip from "../components/dashboard/KpiStrip";
+import CollectionCalendar from "../components/dashboard/CollectionCalendar";
+import CustomerProgress from "../components/dashboard/CustomerProgress";
+import DueLists from "../components/dashboard/DueLists";
 
 const COLORS = {
   brand: "#60bb46", // xanh lá HPCons
@@ -130,18 +135,29 @@ export default function Dashboard() {
   const { isDark } = useTheme();
   const [inst, setInst] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
-      const [i, c] = await Promise.all([api.listInstallments(), api.listCustomers()]);
+      const [i, c, ct] = await Promise.all([
+        api.listInstallments(),
+        api.listCustomers(),
+        api.listContracts(),
+      ]);
       setInst(i);
       setCustomers(c);
+      setContracts(ct);
       setLoading(false);
     })();
   }, []);
 
   if (loading) return <div className="py-20 text-center text-faint">Đang tải…</div>;
+
+  const kpis = buildKpis(contracts, customers, inst);
+  const custProgress = buildCustomerProgress(customers, inst);
+  const dueSoon = buildDueSoon(inst, 30);
+  const overdueRows = buildOverdue(inst);
 
   const cashflow = buildCashflow(inst);
   const byCustomer = buildByCustomer(inst, customers);
@@ -163,7 +179,21 @@ export default function Dashboard() {
   const tipItem = { color: isDark ? "#cbd5e1" : "#334155" };
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+    <div className="space-y-6">
+      {/* KPI tổng hợp cấp TGĐ */}
+      <KpiStrip k={kpis} />
+
+      {/* Lịch thu + Tình hình theo khách hàng */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <CollectionCalendar installments={inst} />
+        <CustomerProgress data={custProgress} />
+      </div>
+
+      {/* Công nợ đến hạn 30 ngày + Quá hạn */}
+      <DueLists dueSoon={dueSoon} overdue={overdueRows} />
+
+      {/* 4 biểu đồ */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       {/* 1. Dòng tiền theo tháng */}
       <ChartCard
         icon={TrendingUp}
@@ -247,6 +277,7 @@ export default function Dashboard() {
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Wallet, LogIn } from "lucide-react";
+import { LogIn } from "lucide-react";
+import Logo from "../components/Logo";
 import { useAuth } from "../context/AuthContext";
 import { authBackend } from "../lib/auth";
 import { DEMO_USERS, ROLES } from "../lib/roles";
@@ -32,11 +33,13 @@ export default function Login() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-6 flex flex-col items-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm">
-            <Wallet size={24} />
+          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white p-1.5 shadow-card">
+            <Logo size={52} />
           </div>
-          <h1 className="mt-3 text-lg font-bold text-ink">HPC Receivable</h1>
-          <p className="text-sm text-faint">Theo dõi công nợ &amp; dòng tiền</p>
+          <h1 className="mt-3 text-center text-lg font-bold uppercase text-ink">
+            Kiểm soát hợp đồng chủ đầu tư
+          </h1>
+          <p className="text-sm text-faint">HP CONS · Công nợ &amp; dòng tiền</p>
         </div>
 
         {/* Form */}

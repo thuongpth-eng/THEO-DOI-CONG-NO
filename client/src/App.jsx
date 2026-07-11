@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
-import { Menu, Wallet, Bell, Sun, Moon } from "lucide-react";
+import { Menu, Bell, Sun, Moon } from "lucide-react";
+import Logo from "./components/Logo";
 import Sidebar from "./components/Sidebar";
 import Overview from "./pages/Overview";
 import Contracts from "./pages/Contracts";
@@ -77,11 +78,11 @@ export default function App() {
           >
             <Menu size={22} />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-white">
-              <Wallet size={15} />
-            </div>
-            <span className="text-sm font-bold text-ink">HPC Receivable</span>
+          <div className="flex min-w-0 items-center gap-2">
+            <Logo size={26} />
+            <span className="truncate text-[13px] font-bold uppercase text-ink">
+              Kiểm soát hợp đồng chủ đầu tư
+            </span>
           </div>
           {/* Avatar góc phải trên điện thoại */}
           <div className="ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-sm font-bold text-white">

@@ -20,3 +20,6 @@ npm-debug.log*
 
 # Công cụ preview nội bộ (không cần cho production)
 dev-preview.cmd
+
+# Firebase cache
+.firebase/

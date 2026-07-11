@@ -120,7 +120,7 @@ export default function Contracts() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Tìm công trình / khách hàng…"
-            className="w-full rounded-lg border border-line bg-card py-2 pl-9 pr-3 text-sm text-ink outline-none placeholder:text-faint focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            className="h-10 w-full rounded-lg border border-line bg-card pl-9 pr-3 text-sm text-ink outline-none placeholder:text-faint focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
           />
         </div>
         {canEdit && (
@@ -146,7 +146,7 @@ export default function Contracts() {
                 <div className="flex items-center gap-2">
                   <span className="truncate font-semibold text-ink">{c.name}</span>
                   {c.late && (
-                    <span className="rounded bg-danger/15 px-1.5 py-0.5 text-[10px] font-semibold text-danger">
+                    <span className="rounded-full bg-danger px-2 py-0.5 text-[10px] font-semibold text-white">
                       QUÁ HẠN
                     </span>
                   )}
@@ -179,13 +179,13 @@ export default function Contracts() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
-                <th className="px-5 py-3 font-medium">Công trình</th>
-                <th className="px-5 py-3 font-medium">Chủ đầu tư</th>
-                <th className="px-5 py-3 text-center font-medium">Số đợt</th>
-                <th className="px-5 py-3 text-right font-medium">Giá trị HĐ</th>
-                <th className="px-5 py-3 text-right font-medium">Còn phải thu</th>
-                <th className="px-5 py-3"></th>
+              <tr className="h-12 border-b border-line text-left text-xs uppercase tracking-wider text-faint">
+                <th className="px-3 py-3 font-medium">Công trình</th>
+                <th className="px-3 py-3 font-medium">Chủ đầu tư</th>
+                <th className="px-3 py-3 text-center font-medium">Số đợt</th>
+                <th className="px-3 py-3 text-right font-medium">Giá trị HĐ</th>
+                <th className="px-3 py-3 text-right font-medium">Còn phải thu</th>
+                <th className="px-3 py-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -195,23 +195,23 @@ export default function Contracts() {
                   onClick={() => nav(`/contracts/${c.id}`)}
                   className="cursor-pointer border-b border-line/60 last:border-0 hover:bg-hover"
                 >
-                  <td className="px-5 py-3 font-semibold text-ink">
+                  <td className="px-3 py-3 font-semibold text-ink">
                     <div className="flex items-center gap-2">
                       {c.name}
                       {c.late && (
-                        <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 dark:text-red-400">
+                        <span className="rounded-full bg-danger px-2 py-0.5 text-[10px] font-semibold text-white">
                           QUÁ HẠN
                         </span>
                       )}
                     </div>
                     <div className="text-xs font-normal text-faint">{c.code}</div>
                   </td>
-                  <td className="px-5 py-3 text-sub">{c.customerName}</td>
-                  <td className="px-5 py-3 text-center text-sub">{c.count}</td>
-                  <td className="px-5 py-3 text-right tabular-nums text-sub">
+                  <td className="px-3 py-3 text-sub">{c.customerName}</td>
+                  <td className="px-3 py-3 text-center text-sub">{c.count}</td>
+                  <td className="px-3 py-3 text-right tabular-nums text-sub">
                     {fmtVND(c.totalAfterTax)}
                   </td>
-                  <td className="px-5 py-3 text-right font-semibold tabular-nums text-ink">
+                  <td className="px-3 py-3 text-right font-semibold tabular-nums text-ink">
                     {fmtVND(c.os)}
                   </td>
                   <td className="px-2 py-3 text-faint">

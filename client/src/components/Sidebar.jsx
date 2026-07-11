@@ -41,7 +41,7 @@ function Item({ to, label, icon: Icon, end }) {
     >
       {({ isActive }) => (
         <>
-          <Icon size={18} className={isActive ? "text-white" : "text-navdim"} />
+          <Icon size={20} className={isActive ? "text-white" : "text-navdim"} />
           {label}
         </>
       )}
@@ -112,7 +112,7 @@ export default function Sidebar({ open = false, onClose }) {
           Về HP CONS Portal
         </a>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-2">
           {NAV.map((item) => (
             <Item key={item.to} {...item} />
           ))}

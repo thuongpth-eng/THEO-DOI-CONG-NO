@@ -30,14 +30,14 @@ const emptyInst = {
 function StatusBadge({ status }) {
   const tone =
     status >= 6
-      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+      ? "bg-brand-500 text-white"
       : status === 5
-      ? "bg-blue-500/15 text-blue-600 dark:text-blue-400"
+      ? "bg-accent text-white"
       : status >= 3
-      ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-      : "bg-slate-500/15 text-sub";
+      ? "bg-warning text-white"
+      : "bg-muted text-white";
   return (
-    <span className={`rounded px-2 py-0.5 text-xs font-medium ${tone}`}>
+    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${tone}`}>
       {statusName(status)}
     </span>
   );
@@ -297,15 +297,15 @@ export default function ContractDetail() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
-                <th className="px-4 py-3 font-medium">Đợt</th>
-                <th className="px-4 py-3 font-medium">Nội dung</th>
-                <th className="px-4 py-3 text-right font-medium">Giá trị</th>
-                <th className="px-4 py-3 text-right font-medium">Đã thu</th>
-                <th className="px-4 py-3 text-right font-medium">Còn lại</th>
-                <th className="px-4 py-3 font-medium">Trạng thái</th>
-                <th className="px-4 py-3 font-medium">Đến hạn</th>
-                <th className="px-4 py-3"></th>
+              <tr className="h-12 border-b border-line text-left text-xs uppercase tracking-wider text-faint">
+                <th className="px-3 py-3 font-medium">Đợt</th>
+                <th className="px-3 py-3 font-medium">Nội dung</th>
+                <th className="px-3 py-3 text-right font-medium">Giá trị</th>
+                <th className="px-3 py-3 text-right font-medium">Đã thu</th>
+                <th className="px-3 py-3 text-right font-medium">Còn lại</th>
+                <th className="px-3 py-3 font-medium">Trạng thái</th>
+                <th className="px-3 py-3 font-medium">Đến hạn</th>
+                <th className="px-3 py-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -313,10 +313,10 @@ export default function ContractDetail() {
                 const late = daysLate(r);
                 return (
                   <tr key={r.id} className="border-b border-line/60 last:border-0 align-top">
-                    <td className="px-4 py-3 font-semibold text-ink whitespace-nowrap">
+                    <td className="px-3 py-3 font-semibold text-ink whitespace-nowrap">
                       {r.dot}
                     </td>
-                    <td className="px-4 py-3 text-sub">
+                    <td className="px-3 py-3 text-sub">
                       <div className="font-medium text-ink">{r.hoso}</div>
                       <div className="max-w-md text-xs text-faint">{r.noidung}</div>
                       {r.ghichu && (
@@ -325,19 +325,19 @@ export default function ContractDetail() {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-sub">
+                    <td className="px-3 py-3 text-right tabular-nums text-sub">
                       {fmtVND(r.value)}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
+                    <td className="px-3 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
                       {fmtVND(r.paid)}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold tabular-nums text-ink">
+                    <td className="px-3 py-3 text-right font-semibold tabular-nums text-ink">
                       {fmtVND(outstanding(r))}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3">
                       <StatusBadge status={r.status} />
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sub">
+                    <td className="px-3 py-3 whitespace-nowrap text-sub">
                       {fmtDate(r.ngayDenHan)}
                       {late > 0 && (
                         <div className="text-xs font-semibold text-red-600 dark:text-red-400">

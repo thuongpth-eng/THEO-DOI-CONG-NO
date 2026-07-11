@@ -10,6 +10,10 @@ export default {
   darkMode: "class",
   theme: {
     extend: {
+      screens: {
+        // HPCons ITASSET: Desktop >=1200px
+        xl: "1200px",
+      },
       colors: {
         // Màu thương hiệu HPCons — xanh lá #60BB46
         brand: {

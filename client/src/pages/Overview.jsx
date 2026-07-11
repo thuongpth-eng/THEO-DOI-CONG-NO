@@ -25,11 +25,11 @@ function KpiCard({ icon: Icon, label, value, sub, tone = "brand" }) {
     <div className="rounded-xl border border-line bg-card p-4 shadow-card">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-sub">{label}</span>
-        <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${tones[tone]}`}>
-          <Icon size={18} />
+        <span className={`flex h-10 w-10 items-center justify-center rounded-lg ${tones[tone]}`}>
+          <Icon size={20} />
         </span>
       </div>
-      <div className="mt-3 text-2xl font-bold text-ink">{value}</div>
+      <div className="mt-3 text-[32px] font-bold leading-10 text-ink">{value}</div>
       {sub && <div className="mt-1 text-xs text-faint">{sub}</div>}
     </div>
   );
@@ -158,7 +158,7 @@ export default function Overview() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate font-semibold text-ink">{c.name}</span>
                   {c.late && (
-                    <span className="shrink-0 rounded bg-danger/15 px-1.5 py-0.5 text-[10px] font-semibold text-danger">
+                    <span className="shrink-0 rounded-full bg-danger px-2 py-0.5 text-[10px] font-semibold text-white">
                       QUÁ HẠN
                     </span>
                   )}
@@ -177,11 +177,11 @@ export default function Overview() {
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
-                <th className="px-5 py-3 font-medium">Công trình</th>
-                <th className="px-5 py-3 font-medium">Chủ đầu tư</th>
-                <th className="px-5 py-3 text-right font-medium">Giá trị HĐ</th>
-                <th className="px-5 py-3 text-right font-medium">Còn phải thu</th>
+              <tr className="h-12 border-b border-line text-left text-xs uppercase tracking-wider text-faint">
+                <th className="px-3 py-3 font-medium">Công trình</th>
+                <th className="px-3 py-3 font-medium">Chủ đầu tư</th>
+                <th className="px-3 py-3 text-right font-medium">Giá trị HĐ</th>
+                <th className="px-3 py-3 text-right font-medium">Còn phải thu</th>
               </tr>
             </thead>
             <tbody>
@@ -193,21 +193,21 @@ export default function Overview() {
                     key={c.id}
                     className="border-b border-line/60 last:border-0 hover:bg-hover"
                   >
-                    <td className="px-5 py-3 font-semibold text-ink">
+                    <td className="px-3 py-3 font-semibold text-ink">
                       <div className="flex items-center gap-2">
                         {c.name}
                         {c.late && (
-                          <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 dark:text-red-400">
+                          <span className="rounded-full bg-danger px-2 py-0.5 text-[10px] font-semibold text-white">
                             QUÁ HẠN
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-sub">{c.customerName}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-sub">
+                    <td className="px-3 py-3 text-sub">{c.customerName}</td>
+                    <td className="px-3 py-3 text-right tabular-nums text-sub">
                       {fmtVND(c.totalAfterTax)}
                     </td>
-                    <td className="px-5 py-3 text-right font-semibold tabular-nums text-ink">
+                    <td className="px-3 py-3 text-right font-semibold tabular-nums text-ink">
                       {fmtVND(c.outstanding)}
                     </td>
                   </tr>

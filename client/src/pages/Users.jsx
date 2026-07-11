@@ -10,12 +10,12 @@ function RoleBadge({ role }) {
   const edit = r?.canEdit;
   const Icon = admin ? ShieldCheck : edit ? Pencil : Eye;
   const tone = admin
-    ? "bg-brand-500/15 text-brand-600 dark:text-brand-400"
+    ? "bg-accent text-white"
     : edit
     ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-    : "bg-slate-500/15 text-sub";
+    : "bg-muted text-white";
   return (
-    <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium ${tone}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${tone}`}>
       <Icon size={12} /> {r?.name || role}
     </span>
   );
@@ -49,22 +49,22 @@ export default function Users() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
-                  <th className="px-5 py-3 font-medium">Họ tên</th>
-                  <th className="px-5 py-3 font-medium">Tên đăng nhập</th>
-                  <th className="px-5 py-3 font-medium">Vai trò</th>
-                  <th className="px-5 py-3 font-medium">Quyền</th>
+                <tr className="h-12 border-b border-line text-left text-xs uppercase tracking-wider text-faint">
+                  <th className="px-3 py-3 font-medium">Họ tên</th>
+                  <th className="px-3 py-3 font-medium">Tên đăng nhập</th>
+                  <th className="px-3 py-3 font-medium">Vai trò</th>
+                  <th className="px-3 py-3 font-medium">Quyền</th>
                 </tr>
               </thead>
               <tbody>
                 {DEMO_USERS.map((u) => (
                   <tr key={u.username} className="border-b border-line/60 last:border-0">
-                    <td className="px-5 py-3 font-semibold text-ink">{u.name}</td>
-                    <td className="px-5 py-3 text-sub">{u.username}</td>
-                    <td className="px-5 py-3">
+                    <td className="px-3 py-3 font-semibold text-ink">{u.name}</td>
+                    <td className="px-3 py-3 text-sub">{u.username}</td>
+                    <td className="px-3 py-3">
                       <RoleBadge role={u.role} />
                     </td>
-                    <td className="px-5 py-3 text-sub">
+                    <td className="px-3 py-3 text-sub">
                       {ROLES[u.role]?.canEdit ? "Nhập & sửa dữ liệu" : "Chỉ xem"}
                       {ROLES[u.role]?.admin && " · Quản trị"}
                     </td>

@@ -41,34 +41,36 @@ export function Field({ label, children, hint }) {
   );
 }
 
-const base =
-  "w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 placeholder:text-faint";
+const field =
+  "w-full rounded-lg border border-line bg-card px-3 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 placeholder:text-faint";
 
+/* Spec HPCons: Input cao 40px, radius 8px */
 export function Input(props) {
-  return <input {...props} className={base} />;
+  return <input {...props} className={`${field} h-10`} />;
 }
 export function Textarea(props) {
-  return <textarea {...props} className={base} rows={props.rows || 3} />;
+  return <textarea {...props} className={`${field} py-2`} rows={props.rows || 3} />;
 }
 export function Select({ children, ...props }) {
   return (
-    <select {...props} className={base}>
+    <select {...props} className={`${field} h-10`}>
       {children}
     </select>
   );
 }
 
+/* Spec HPCons: Button cao 40px, padding ngang 24px, radius 8px */
 export function Btn({ variant = "primary", className = "", ...props }) {
   const styles = {
     primary: "bg-brand-600 text-white hover:bg-brand-700",
     ghost: "text-sub hover:bg-hover",
-    danger: "bg-red-600 text-white hover:bg-red-700",
+    danger: "bg-danger text-white hover:bg-red-700",
     outline: "border border-line text-sub hover:bg-hover",
   };
   return (
     <button
       {...props}
-      className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${styles[variant]} ${className}`}
+      className={`h-10 rounded-lg px-6 text-sm font-medium transition-colors disabled:opacity-50 ${styles[variant]} ${className}`}
     />
   );
 }

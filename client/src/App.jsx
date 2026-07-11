@@ -39,7 +39,7 @@ function AdminOnly({ children }) {
 }
 
 export default function App() {
-  const { user, ready } = useAuth();
+  const { user, ready, roleName } = useAuth();
   const { pathname } = useLocation();
   const [drawer, setDrawer] = useState(false);
 
@@ -81,19 +81,36 @@ export default function App() {
             </div>
             <span className="text-sm font-bold text-ink">HPC Receivable</span>
           </div>
+          {/* Avatar góc phải trên điện thoại */}
+          <div className="ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-sm font-bold text-white">
+            {(user.name || "?").charAt(0)}
+          </div>
         </div>
 
-        <header className="px-4 py-4 xl:px-6 xl:py-6">
-          {isHome ? (
-            <>
-              <h1 className="text-xl font-bold text-ink sm:text-2xl">
-                Xin chào, {user.name} 👋
-              </h1>
-              <p className="mt-1 text-sm text-faint">{todayVN()}</p>
-            </>
-          ) : (
-            <h1 className="text-xl font-bold text-ink sm:text-2xl">{title}</h1>
-          )}
+        <header className="flex items-start justify-between gap-4 px-4 py-4 xl:px-6 xl:py-6">
+          <div className="min-w-0">
+            {isHome ? (
+              <>
+                <h1 className="truncate text-xl font-bold text-ink sm:text-2xl">
+                  Xin chào, {user.name} 👋
+                </h1>
+                <p className="mt-1 text-sm text-faint">{todayVN()}</p>
+              </>
+            ) : (
+              <h1 className="truncate text-xl font-bold text-ink sm:text-2xl">{title}</h1>
+            )}
+          </div>
+
+          {/* Người đăng nhập — góc phải (ẩn trên điện thoại vì đã có ở thanh trên) */}
+          <div className="hidden shrink-0 items-center gap-3 rounded-xl border border-line bg-card px-4 py-2 shadow-card xl:flex">
+            <div className="text-right leading-tight">
+              <div className="text-sm font-semibold text-ink">{user.name}</div>
+              <div className="text-xs text-faint">{roleName}</div>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500 text-sm font-bold text-white">
+              {(user.name || "?").charAt(0)}
+            </div>
+          </div>
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 pb-10 xl:px-6">

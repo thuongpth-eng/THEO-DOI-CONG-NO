@@ -1,4 +1,4 @@
-# HPC Receivable — Theo dõi công nợ & dòng tiền
+﻿# HPC Receivable — Theo dõi công nợ & dòng tiền
 
 Web app quản lý công nợ phải thu của HP CONS. App **độc lập**, nhái phong cách HP CONS Portal, có link qua lại với Portal.
 

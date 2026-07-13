@@ -6,7 +6,6 @@ import Sidebar from "./components/Sidebar";
 import Overview from "./pages/Overview";
 import Contracts from "./pages/Contracts";
 import ContractDetail from "./pages/ContractDetail";
-import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
 import Links from "./pages/Links";
 import Login from "./pages/Login";
@@ -31,7 +30,6 @@ const TITLES = [
   { re: /^\/$/, title: "Dashboard tổng quan" },
   { re: /^\/contracts\/.+/, title: "Chi tiết công trình" },
   { re: /^\/contracts$/, title: "Kho lưu trữ hợp đồng thi công" },
-  { re: /^\/dashboard/, title: "Dashboard dòng tiền" },
   { re: /^\/links/, title: "Mã liên kết" },
   { re: /^\/history/, title: "Lịch sử thay đổi" },
   { re: /^\/users/, title: "Người dùng" },
@@ -135,7 +133,6 @@ export default function App() {
             <Route path="/" element={<Overview />} />
             <Route path="/contracts" element={<Contracts />} />
             <Route path="/contracts/:id" element={<ContractDetail />} />
-            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/links" element={<Links />} />
             <Route path="/history" element={<Placeholder title="Lịch sử thay đổi" />} />
             <Route

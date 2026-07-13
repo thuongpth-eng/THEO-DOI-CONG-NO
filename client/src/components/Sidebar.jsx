@@ -16,8 +16,8 @@ import { useTheme } from "../context/ThemeContext";
 import Logo from "./Logo";
 
 const NAV = [
-  { to: "/", label: "Tổng quan", icon: LayoutDashboard, end: true },
-  { to: "/contracts", label: "Hợp đồng & công nợ", icon: FileText },
+  { to: "/", label: "Theo dõi công nợ", icon: LayoutDashboard, end: true },
+  { to: "/contracts", label: "Kho lưu trữ hợp đồng thi công", icon: FileText },
   { to: "/dashboard", label: "Dashboard dòng tiền", icon: BarChart3 },
   { to: "/history", label: "Lịch sử thay đổi", icon: History },
 ];

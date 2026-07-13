@@ -76,6 +76,26 @@ export function buildCustomerProgress(customers, installments) {
     .sort((a, b) => b.outstanding - a.outstanding);
 }
 
+// ----- Tuổi nợ phải thu (3 mức, theo token màu HPCons) -----
+export function buildAgingSimple(installments) {
+  let inTerm = 0,
+    b30 = 0,
+    over30 = 0;
+  for (const r of installments) {
+    const os = outstanding(r);
+    if (os <= 0) continue;
+    const late = daysLate(r);
+    if (late <= 0) inTerm += os;
+    else if (late <= 30) b30 += os;
+    else over30 += os;
+  }
+  return [
+    { name: "Trong hạn", value: inTerm, fill: "#0969A7" },
+    { name: "Quá hạn 1–30 ngày", value: b30, fill: "#FFA726" },
+    { name: "Quá hạn >30 ngày", value: over30, fill: "#E53935" },
+  ];
+}
+
 // ----- Danh sách đến hạn (0..days ngày tới) & quá hạn -----
 export function buildDueSoon(installments, days = 30) {
   return installments

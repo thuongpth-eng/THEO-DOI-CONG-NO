@@ -27,9 +27,9 @@ function Placeholder({ title }) {
 }
 
 const TITLES = [
-  { re: /^\/$/, title: "Tổng quan" },
+  { re: /^\/$/, title: "Theo dõi công nợ" },
   { re: /^\/contracts\/.+/, title: "Chi tiết công trình" },
-  { re: /^\/contracts$/, title: "Hợp đồng & công nợ" },
+  { re: /^\/contracts$/, title: "Kho lưu trữ hợp đồng thi công" },
   { re: /^\/dashboard/, title: "Dashboard dòng tiền" },
   { re: /^\/history/, title: "Lịch sử thay đổi" },
   { re: /^\/users/, title: "Người dùng" },
@@ -124,18 +124,10 @@ export default function App() {
         <main className="flex-1 overflow-y-auto px-4 pb-10 xl:px-6">
           {/* Page Title 28px Bold (spec Typography) */}
           <div className="py-4 xl:py-6">
-            {isHome ? (
-              <>
-                <h1 className="truncate text-2xl font-bold text-ink xl:text-[28px] xl:leading-9">
-                  Xin chào, {user.name} 👋
-                </h1>
-                <p className="mt-1 text-sm text-faint xl:hidden">{todayVN()}</p>
-              </>
-            ) : (
-              <h1 className="truncate text-2xl font-bold text-ink xl:text-[28px] xl:leading-9">
-                {title}
-              </h1>
-            )}
+            <h1 className="truncate text-2xl font-bold text-ink xl:text-[28px] xl:leading-9">
+              {isHome ? "Dashboard tổng quan" : title}
+            </h1>
+            <p className="mt-1 text-sm text-faint xl:hidden">{todayVN()}</p>
           </div>
           <Routes>
             <Route path="/" element={<Overview />} />

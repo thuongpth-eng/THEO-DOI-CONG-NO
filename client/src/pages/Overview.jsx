@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   TrendingUp,
   Building2,
@@ -8,10 +9,13 @@ import {
   FileText,
   Download,
   Printer,
+  ListTree,
 } from "lucide-react";
 import api, { backendName } from "../lib/data";
 import { fmtVND, fmtTy, summarize, outstanding, daysLate } from "../lib/models";
 import { exportExcel, exportCSV, exportJSON, printReport } from "../lib/exporter";
+import { buildKpis, buildCustomerProgress } from "../lib/dashboard";
+import OverviewWidgets from "../components/dashboard/OverviewWidgets";
 
 function KpiCard({ icon: Icon, label, value, sub, tone = "brand" }) {
   const tones = {
@@ -36,6 +40,7 @@ function KpiCard({ icon: Icon, label, value, sub, tone = "brand" }) {
 }
 
 export default function Overview() {
+  const nav = useNavigate();
   const [contracts, setContracts] = useState([]);
   const [installments, setInstallments] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -77,10 +82,20 @@ export default function Overview() {
     </button>
   );
 
+  const kpis = buildKpis(contracts, customers, installments);
+  const custData = buildCustomerProgress(customers, installments);
+
   return (
     <div>
-      {/* Thanh xuất báo cáo */}
-      <div className="mb-4 flex flex-wrap justify-end gap-2">
+      {/* Thanh hành động */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <button
+          onClick={() => nav("/contracts")}
+          className="flex h-10 items-center gap-1.5 rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
+        >
+          <ListTree size={16} /> Chi tiết công nợ
+        </button>
+        <div className="flex flex-wrap gap-2">
         <ExportBtn
           icon={FileSpreadsheet}
           label="Xuất Excel"
@@ -97,6 +112,7 @@ export default function Overview() {
           label="In / PDF"
           onClick={() => printReport(contracts, installments)}
         />
+        </div>
       </div>
 
       {backendName === "local" && (
@@ -139,10 +155,15 @@ export default function Overview() {
         />
       </div>
 
-      {/* Bảng công trình */}
+      {/* Widget ERP: đồng hồ tiến độ · treemap KH · donut tuổi nợ */}
+      <div className="mt-6">
+        <OverviewWidgets kpis={kpis} customerData={custData} installments={installments} />
+      </div>
+
+      {/* Bảng chi tiết công nợ */}
       <div className="mt-6 rounded-xl border border-line bg-card shadow-card">
         <div className="border-b border-line px-5 py-4">
-          <h2 className="text-base font-semibold text-ink">Công nợ theo công trình</h2>
+          <h2 className="text-base font-semibold text-ink">Chi tiết công nợ theo công trình</h2>
           <p className="text-xs text-faint">
             {contracts.length} công trình · sắp theo còn phải thu
           </p>

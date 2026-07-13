@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, useLocation, Navigate, Link } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { Menu, Bell, Sun, Moon } from "lucide-react";
 import Logo from "./components/Logo";
 import Sidebar from "./components/Sidebar";
@@ -28,7 +28,7 @@ function Placeholder({ title }) {
 }
 
 const TITLES = [
-  { re: /^\/$/, title: "Theo dõi công nợ" },
+  { re: /^\/$/, title: "Dashboard tổng quan" },
   { re: /^\/contracts\/.+/, title: "Chi tiết công trình" },
   { re: /^\/contracts$/, title: "Kho lưu trữ hợp đồng thi công" },
   { re: /^\/dashboard/, title: "Dashboard dòng tiền" },
@@ -124,36 +124,11 @@ export default function App() {
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 pb-10 xl:px-6">
-          {/* Page Title 28px Bold — trang chủ & chi tiết công nợ là 2 tab cạnh nhau */}
+          {/* Page Title 28px Bold (spec Typography) */}
           <div className="py-4 xl:py-6">
-            {isHome || pathname === "/contracts" ? (
-              <div className="flex flex-wrap items-end gap-6">
-                <Link
-                  to="/"
-                  className={`border-b-4 pb-1 text-2xl font-bold xl:text-[28px] xl:leading-9 ${
-                    isHome
-                      ? "border-brand-500 text-ink"
-                      : "border-transparent text-faint hover:text-ink"
-                  }`}
-                >
-                  Dashboard tổng quan
-                </Link>
-                <Link
-                  to="/contracts"
-                  className={`border-b-4 pb-1 text-2xl font-bold xl:text-[28px] xl:leading-9 ${
-                    pathname === "/contracts"
-                      ? "border-brand-500 text-ink"
-                      : "border-transparent text-faint hover:text-ink"
-                  }`}
-                >
-                  Chi tiết
-                </Link>
-              </div>
-            ) : (
-              <h1 className="truncate text-2xl font-bold text-ink xl:text-[28px] xl:leading-9">
-                {title}
-              </h1>
-            )}
+            <h1 className="truncate text-2xl font-bold text-ink xl:text-[28px] xl:leading-9">
+              {title}
+            </h1>
             <p className="mt-1 text-sm text-faint xl:hidden">{todayVN()}</p>
           </div>
           <Routes>

@@ -1,8 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, ChevronRight, Search } from "lucide-react";
+import {
+  Plus,
+  ChevronRight,
+  Search,
+  Archive,
+  CheckCircle2,
+  Loader,
+  Landmark,
+} from "lucide-react";
 import api from "../lib/data";
-import { fmtVND, outstanding, daysLate } from "../lib/models";
+import { fmtVND, fmtTy, outstanding, daysLate } from "../lib/models";
 import Modal, { Field, Input, Textarea, Select, Btn } from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
 
@@ -17,6 +25,12 @@ const slug = (s) =>
     .replace(/(^-|-$)/g, "")
     .slice(0, 40);
 
+// Lấy năm từ số hợp đồng (VD "01/2026/HĐXD-HPCS" → "2026")
+const yearOf = (c) => {
+  const m = (c.code || "").match(/(20\d{2})/) || (c.maDuAn || "").match(/(20\d{2})/);
+  return m ? m[1] : "Chưa rõ năm";
+};
+
 const emptyForm = {
   name: "",
   customerName: "",
@@ -28,6 +42,29 @@ const emptyForm = {
   maDuAn: "",
 };
 
+function StatusTag({ done }) {
+  return done ? (
+    <span className="inline-flex items-center gap-1 rounded-full bg-brand-500 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+      <CheckCircle2 size={12} /> Hoàn thành
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-semibold text-white">
+      <Loader size={12} /> Đang thực hiện
+    </span>
+  );
+}
+
+function YearStat({ icon: Icon, label, value, tone = "text-ink" }) {
+  return (
+    <div className="rounded-xl border border-line bg-card p-4 shadow-card">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-sub">
+        <Icon size={16} className="text-brand-500" /> {label}
+      </div>
+      <div className={`mt-2 text-2xl font-bold tabular-nums ${tone}`}>{value}</div>
+    </div>
+  );
+}
+
 export default function Contracts() {
   const nav = useNavigate();
   const { canEdit } = useAuth();
@@ -36,6 +73,7 @@ export default function Contracts() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [year, setYear] = useState(null);
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -90,19 +128,39 @@ export default function Contracts() {
     reload();
   }
 
-  if (loading)
-    return <div className="py-20 text-center text-faint">Đang tải…</div>;
+  // Gắn năm + trạng thái cho từng hợp đồng
+  const enriched = useMemo(
+    () =>
+      contracts.map((c) => {
+        const rs = installments.filter((i) => i.contractId === c.id);
+        const os = rs.reduce((s, r) => s + outstanding(r), 0);
+        return {
+          ...c,
+          year: yearOf(c),
+          os,
+          late: rs.some((r) => daysLate(r) > 0),
+          count: rs.length,
+          done: rs.length > 0 && os <= 0.5,
+        };
+      }),
+    [contracts, installments]
+  );
 
-  const rows = contracts
-    .map((c) => {
-      const rs = installments.filter((i) => i.contractId === c.id);
-      return {
-        ...c,
-        os: rs.reduce((s, r) => s + outstanding(r), 0),
-        late: rs.some((r) => daysLate(r) > 0),
-        count: rs.length,
-      };
-    })
+  const years = useMemo(() => {
+    const ys = [...new Set(enriched.map((c) => c.year))];
+    return ys.sort((a, b) => String(b).localeCompare(String(a)));
+  }, [enriched]);
+
+  const activeYear = year && years.includes(year) ? year : years[0];
+
+  if (loading) return <div className="py-20 text-center text-faint">Đang tải…</div>;
+
+  const inYear = enriched.filter((c) => c.year === activeYear);
+  const doneCount = inYear.filter((c) => c.done).length;
+  const totalValue = inYear.reduce((s, c) => s + (c.totalAfterTax || 0), 0);
+  const totalOs = inYear.reduce((s, c) => s + c.os, 0);
+
+  const rows = inYear
     .filter(
       (c) =>
         !q ||
@@ -113,9 +171,52 @@ export default function Contracts() {
 
   return (
     <div>
+      {/* Chọn năm lưu trữ */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="flex items-center gap-1.5 text-sm font-medium text-sub">
+          <Archive size={16} className="text-brand-500" /> Năm lưu trữ:
+        </span>
+        {years.map((y) => (
+          <button
+            key={y}
+            onClick={() => setYear(y)}
+            className={`h-10 rounded-lg px-4 text-sm font-bold transition-colors ${
+              y === activeYear
+                ? "bg-brand-500 text-white"
+                : "border border-line bg-card text-sub hover:border-brand-400 hover:text-brand-500"
+            }`}
+          >
+            {y}
+          </button>
+        ))}
+      </div>
+
+      {/* Thống kê năm */}
+      <div className="mb-4 grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <YearStat icon={Archive} label={`Hợp đồng năm ${activeYear}`} value={inYear.length} />
+        <YearStat
+          icon={CheckCircle2}
+          label="Đã hoàn thành"
+          value={doneCount}
+          tone="text-brand-500"
+        />
+        <YearStat
+          icon={Loader}
+          label="Đang thực hiện"
+          value={inYear.length - doneCount}
+          tone="text-accent"
+        />
+        <YearStat
+          icon={Landmark}
+          label="Tổng giá trị / còn phải thu"
+          value={`${fmtTy(totalValue)} / ${fmtTy(totalOs)}`}
+        />
+      </div>
+
+      {/* Tìm kiếm + thêm */}
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="relative max-w-xs flex-1">
-          <Search size={16} className="absolute left-3 top-2.5 text-faint" />
+          <Search size={16} className="absolute left-3 top-3 text-faint" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -143,7 +244,7 @@ export default function Contracts() {
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="truncate font-semibold text-ink">{c.name}</span>
                   {c.late && (
                     <span className="rounded-full bg-danger px-2 py-0.5 text-[10px] font-semibold text-white">
@@ -152,6 +253,9 @@ export default function Contracts() {
                   )}
                 </div>
                 <div className="mt-0.5 truncate text-xs text-faint">{c.customerName}</div>
+                <div className="mt-1.5">
+                  <StatusTag done={c.done} />
+                </div>
               </div>
               <ChevronRight size={18} className="shrink-0 text-faint" />
             </div>
@@ -169,7 +273,7 @@ export default function Contracts() {
         ))}
         {rows.length === 0 && (
           <div className="rounded-xl border border-line bg-card px-4 py-10 text-center text-faint">
-            Không tìm thấy công trình nào.
+            Không tìm thấy hợp đồng nào trong năm {activeYear}.
           </div>
         )}
       </div>
@@ -182,6 +286,7 @@ export default function Contracts() {
               <tr className="h-12 border-b border-line text-left text-xs uppercase tracking-wider text-faint">
                 <th className="px-3 py-3 font-medium">Công trình</th>
                 <th className="px-3 py-3 font-medium">Chủ đầu tư</th>
+                <th className="px-3 py-3 font-medium">Trạng thái</th>
                 <th className="px-3 py-3 text-center font-medium">Số đợt</th>
                 <th className="px-3 py-3 text-right font-medium">Giá trị HĐ</th>
                 <th className="px-3 py-3 text-right font-medium">Còn phải thu</th>
@@ -207,6 +312,9 @@ export default function Contracts() {
                     <div className="text-xs font-normal text-faint">{c.code}</div>
                   </td>
                   <td className="px-3 py-3 text-sub">{c.customerName}</td>
+                  <td className="px-3 py-3">
+                    <StatusTag done={c.done} />
+                  </td>
                   <td className="px-3 py-3 text-center text-sub">{c.count}</td>
                   <td className="px-3 py-3 text-right tabular-nums text-sub">
                     {fmtVND(c.totalAfterTax)}
@@ -221,8 +329,8 @@ export default function Contracts() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-10 text-center text-faint">
-                    Không tìm thấy công trình nào.
+                  <td colSpan={7} className="px-3 py-10 text-center text-faint">
+                    Không tìm thấy hợp đồng nào trong năm {activeYear}.
                   </td>
                 </tr>
               )}
@@ -251,7 +359,7 @@ export default function Contracts() {
           <Field label="Tên công trình *">
             <Input value={form.name} onChange={set("name")} placeholder="VD: HOWELL" />
           </Field>
-          <Field label="Số hợp đồng">
+          <Field label="Số hợp đồng" hint="Năm trong số HĐ dùng để xếp vào kho lưu trữ">
             <Input value={form.code} onChange={set("code")} placeholder="01/2026/HĐXD-HPCS" />
           </Field>
           <Field label="Chọn chủ đầu tư có sẵn">

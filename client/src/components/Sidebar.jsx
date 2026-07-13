@@ -7,12 +7,8 @@ import {
   Users,
   LogOut,
   ArrowLeft,
-  Sun,
-  Moon,
-  Monitor,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
 import Logo from "./Logo";
 
 const NAV = [
@@ -46,36 +42,6 @@ function Item({ to, label, icon: Icon, end }) {
         </>
       )}
     </NavLink>
-  );
-}
-
-function ThemeToggle() {
-  const { mode, setMode } = useTheme();
-  const opts = [
-    { key: "light", icon: Sun, label: "Sáng" },
-    { key: "dark", icon: Moon, label: "Tối" },
-    { key: "system", icon: Monitor, label: "Tự động" },
-  ];
-  return (
-    <div className="mb-2 flex gap-1 rounded-lg border border-white/10 p-1">
-      {opts.map((o) => {
-        const Icon = o.icon;
-        const active = mode === o.key;
-        return (
-          <button
-            key={o.key}
-            onClick={() => setMode(o.key)}
-            title={o.label}
-            aria-label={o.label}
-            className={`flex min-h-[36px] flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium transition-colors ${
-              active ? "bg-navactivebg text-navactivefg" : "text-navdim hover:bg-navhover"
-            }`}
-          >
-            <Icon size={14} />
-          </button>
-        );
-      })}
-    </div>
   );
 }
 
@@ -131,7 +97,6 @@ export default function Sidebar({ open = false, onClose }) {
         </nav>
 
         <div className="border-t border-white/10 p-3">
-          <ThemeToggle />
           <div className="flex items-center gap-3 px-2 py-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-sm font-bold text-white">
               {(user?.name || "?").charAt(0)}

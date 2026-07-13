@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import {
+  Link2,
   LayoutDashboard,
   FileText,
   BarChart3,
@@ -14,6 +15,7 @@ import Logo from "./Logo";
 const NAV = [
   { to: "/", label: "Theo dõi công nợ", icon: LayoutDashboard, end: true },
   { to: "/contracts", label: "Kho lưu trữ hợp đồng thi công", icon: FileText },
+  { to: "/links", label: "Mã liên kết", icon: Link2 },
   { to: "/dashboard", label: "Dashboard dòng tiền", icon: BarChart3 },
   { to: "/history", label: "Lịch sử thay đổi", icon: History },
 ];

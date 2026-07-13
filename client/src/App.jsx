@@ -122,13 +122,15 @@ export default function App() {
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 pb-10 xl:px-6">
-          {/* Page Title 28px Bold (spec Typography) */}
-          <div className="py-4 xl:py-6">
-            <h1 className="truncate text-2xl font-bold text-ink xl:text-[28px] xl:leading-9">
-              {title}
-            </h1>
-            <p className="mt-1 text-sm text-faint xl:hidden">{todayVN()}</p>
-          </div>
+          {/* Page Title — trang chủ tự vẽ 2 tab trong Overview */}
+          {!isHome && (
+            <div className="py-4 xl:py-6">
+              <h1 className="truncate text-2xl font-bold text-ink xl:text-[28px] xl:leading-9">
+                {title}
+              </h1>
+              <p className="mt-1 text-sm text-faint xl:hidden">{todayVN()}</p>
+            </div>
+          )}
           <Routes>
             <Route path="/" element={<Overview />} />
             <Route path="/contracts" element={<Contracts />} />

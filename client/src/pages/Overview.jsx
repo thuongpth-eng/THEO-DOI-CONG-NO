@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   TrendingUp,
   Building2,
@@ -9,7 +8,6 @@ import {
   FileText,
   Download,
   Printer,
-  ListTree,
 } from "lucide-react";
 import api, { backendName } from "../lib/data";
 import { fmtVND, fmtTy, summarize, outstanding, daysLate } from "../lib/models";
@@ -40,7 +38,6 @@ function KpiCard({ icon: Icon, label, value, sub, tone = "brand" }) {
 }
 
 export default function Overview() {
-  const nav = useNavigate();
   const [contracts, setContracts] = useState([]);
   const [installments, setInstallments] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -88,13 +85,7 @@ export default function Overview() {
   return (
     <div>
       {/* Thanh hành động */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <button
-          onClick={() => nav("/contracts")}
-          className="flex h-10 items-center gap-1.5 rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          <ListTree size={16} /> Chi tiết công nợ
-        </button>
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
         <div className="flex flex-wrap gap-2">
         <ExportBtn
           icon={FileSpreadsheet}

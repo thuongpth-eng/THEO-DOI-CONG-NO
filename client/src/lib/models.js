@@ -26,6 +26,55 @@ export const fmtTy = (n) => {
   return Math.round(n).toLocaleString("vi-VN");
 };
 
+// Đọc số tiền VND thành chữ (VD: 70000000000 → "Bảy mươi tỷ đồng")
+const _CS = ["không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
+function _readTriple(num, full) {
+  const tram = Math.floor(num / 100);
+  const chuc = Math.floor((num % 100) / 10);
+  const dv = num % 10;
+  let s = "";
+  if (tram > 0) s += _CS[tram] + " trăm";
+  else if (full && (chuc > 0 || dv > 0)) s += "không trăm";
+  if (chuc > 1) {
+    s += " " + _CS[chuc] + " mươi";
+    if (dv === 1) s += " mốt";
+    else if (dv === 5) s += " lăm";
+    else if (dv > 0) s += " " + _CS[dv];
+  } else if (chuc === 1) {
+    s += " mười";
+    if (dv === 5) s += " lăm";
+    else if (dv > 0) s += " " + _CS[dv];
+  } else if (dv > 0) {
+    if (tram > 0 || full) s += " lẻ";
+    s += " " + _CS[dv];
+  }
+  return s.trim();
+}
+export function docSoVND(n) {
+  n = Math.round(Number(n) || 0);
+  if (n === 0) return "Không đồng";
+  const groups = [];
+  let x = n;
+  while (x > 0) {
+    groups.push(x % 1000);
+    x = Math.floor(x / 1000);
+  }
+  const highest = groups.length - 1;
+  const scaleWord = (i) => {
+    const base = ["", "nghìn", "triệu"][i % 3];
+    const ty = Math.floor(i / 3);
+    return (base + (ty > 0 ? " " + Array(ty).fill("tỷ").join(" ") : "")).trim();
+  };
+  const parts = [];
+  for (let i = highest; i >= 0; i--) {
+    if (groups[i] === 0) continue;
+    const triple = _readTriple(groups[i], i !== highest);
+    parts.push((triple + " " + scaleWord(i)).trim());
+  }
+  let s = parts.join(" ").replace(/\s+/g, " ").trim();
+  return s.charAt(0).toUpperCase() + s.slice(1) + " đồng";
+}
+
 export const fmtDate = (s) => {
   if (!s) return "—";
   const [y, m, d] = s.split("-");

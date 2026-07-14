@@ -8,9 +8,14 @@ import {
   ChevronDown,
   Building2,
   MapPin,
+  UserPlus,
+  Layers,
+  CalendarClock,
+  Paperclip,
+  X,
 } from "lucide-react";
 import api from "../lib/data";
-import { fmtVND, fmtTy, outstanding, daysLate } from "../lib/models";
+import { fmtVND, fmtTy, fmtDate, outstanding, daysLate } from "../lib/models";
 import Modal, { Field, Input, Textarea, Select, Btn } from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
 
@@ -29,6 +34,17 @@ const yearOf = (c) => {
   const m = (c.code || "").match(/(20\d{2})/) || (c.maDuAn || "").match(/(20\d{2})/);
   return m ? m[1] : "Chưa rõ năm";
 };
+
+// Ngày cập nhật của 1 hợp đồng = ngày mới nhất trong các đợt (không bịa nếu chưa có)
+function lastUpdate(rows) {
+  let best = null;
+  for (const r of rows) {
+    for (const d of [r.ngayTT, r.ngayXuatHD, r.ngayGuiHS, r.ngayDenHan]) {
+      if (d && (!best || d > best)) best = d;
+    }
+  }
+  return best;
+}
 
 // Trạng thái 1 đợt → màu chấm trên thanh tiến trình
 function stageState(r) {
@@ -83,6 +99,7 @@ const emptyForm = {
   loc: "",
   totalAfterTax: "",
   maDuAn: "",
+  loai: "Hợp đồng",
 };
 
 export default function Contracts() {
@@ -92,13 +109,24 @@ export default function Contracts() {
   const [installments, setInstallments] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Tìm kiếm + bộ lọc
   const [q, setQ] = useState("");
+  const [fCus, setFCus] = useState(""); // lọc theo chủ đầu tư
+  const [fStatus, setFStatus] = useState(""); // lọc theo trạng thái
+
   const [year, setYear] = useState(null);
-  const [yearOpen, setYearOpen] = useState(true); // nút sổ của năm
-  const [openCus, setOpenCus] = useState({}); // customerId → mở/đóng
+  const [yearOpen, setYearOpen] = useState(true);
+  const [openCus, setOpenCus] = useState({});
+
+  // Modal thêm HĐ/PL
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  // Modal thêm khách hàng
+  const [custModal, setCustModal] = useState(false);
+  const [custName, setCustName] = useState("");
+  const [custSaving, setCustSaving] = useState(false);
 
   async function reload() {
     const [ct, inst, cus] = await Promise.all([
@@ -116,6 +144,12 @@ export default function Contracts() {
   }, []);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  // Mở modal thêm HĐ/PL, có thể điền sẵn chủ đầu tư từ 1 công ty
+  function openAdd(preset = {}) {
+    setForm({ ...emptyForm, ...preset });
+    setModal(true);
+  }
 
   async function saveContract() {
     if (!form.name.trim()) return alert("Vui lòng nhập tên công trình.");
@@ -140,12 +174,24 @@ export default function Contracts() {
       totalAfterTax: Number(form.totalAfterTax) || 0,
       maDuAn: form.maDuAn.trim(),
       group: form.name.trim(),
-      loai: "Hợp đồng",
+      loai: form.loai || "Hợp đồng",
       order: contracts.length + 1,
     });
     setSaving(false);
     setModal(false);
     setForm(emptyForm);
+    reload();
+  }
+
+  async function saveCustomer() {
+    const name = custName.trim();
+    if (!name) return alert("Vui lòng nhập tên chủ đầu tư.");
+    setCustSaving(true);
+    const id = slug(name);
+    if (!customers.some((c) => c.id === id)) await api.addCustomer?.({ id, name });
+    setCustSaving(false);
+    setCustModal(false);
+    setCustName("");
     reload();
   }
 
@@ -171,6 +217,7 @@ export default function Contracts() {
           paid: rs.reduce((s, r) => s + (r.paid || 0), 0),
           os: rs.reduce((s, r) => s + outstanding(r), 0),
           late: rs.some((r) => daysLate(r) > 0),
+          fileCount: rs.reduce((s, r) => s + (r.files?.length || 0), 0),
         };
       }),
     [contracts, rowsByContract]
@@ -203,20 +250,113 @@ export default function Contracts() {
     g.paid = g.contracts.reduce((s, c) => s + c.paid, 0);
     g.os = g.contracts.reduce((s, c) => s + c.os, 0);
     g.pct = g.value > 0 ? Math.round((g.paid / g.value) * 100) : 0;
+    g.late = g.contracts.some((c) => c.late);
+    g.rowCount = g.contracts.reduce((s, c) => s + c.rows.length, 0);
+    g.fileCount = g.contracts.reduce((s, c) => s + c.fileCount, 0);
+    g.updated = lastUpdate(g.contracts.flatMap((c) => c.rows));
+    // trạng thái tổng: quá hạn > hoàn thành > đang thực hiện
+    g.st = g.late ? "overdue" : g.value > 0 && g.os <= 0.5 ? "done" : "progress";
   }
-  const filtered = groups.filter(
-    (g) =>
-      !q ||
-      g.name.toLowerCase().includes(q.toLowerCase()) ||
-      g.contracts.some((c) => c.name.toLowerCase().includes(q.toLowerCase()))
-  );
+
+  const qq = q.trim().toLowerCase();
+  const filtered = groups.filter((g) => {
+    if (fCus && g.name !== fCus) return false;
+    if (fStatus && g.st !== fStatus) return false;
+    if (!qq) return true;
+    return (
+      g.name.toLowerCase().includes(qq) ||
+      (g.maDuAn || "").toLowerCase().includes(qq) ||
+      g.contracts.some(
+        (c) =>
+          c.name.toLowerCase().includes(qq) ||
+          (c.code || "").toLowerCase().includes(qq) ||
+          (c.maDuAn || "").toLowerCase().includes(qq)
+      )
+    );
+  });
   filtered.sort((a, b) => b.os - a.os);
 
   const yearValue = inYear.reduce((s, c) => s + (c.totalAfterTax || c.value), 0);
   const yearPaid = inYear.reduce((s, c) => s + c.paid, 0);
+  const hasFilter = q || fCus || fStatus;
+  const cusNames = [...new Set(groups.map((g) => g.name))].sort((a, b) => a.localeCompare(b, "vi"));
 
   return (
-    <div>
+    <div className="pt-4 xl:pt-6">
+      {/* Tiêu đề trang + hành động */}
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-ink xl:text-2xl">
+            Kho lưu trữ hợp đồng thi công
+          </h1>
+          <p className="mt-0.5 text-xs text-faint">
+            Bấm tên công trình để mở đối chiếu công nợ &amp; hồ sơ · Thêm hợp đồng / phụ lục cho
+            từng công ty
+          </p>
+        </div>
+        {canEdit && (
+          <div className="flex flex-wrap gap-2">
+            <Btn onClick={() => openAdd()}>
+              <span className="flex items-center gap-1.5">
+                <Plus size={16} /> Thêm hợp đồng / phụ lục
+              </span>
+            </Btn>
+            <Btn variant="ghost" onClick={() => setCustModal(true)}>
+              <span className="flex items-center gap-1.5">
+                <UserPlus size={16} /> Thêm khách hàng mới
+              </span>
+            </Btn>
+          </div>
+        )}
+      </div>
+
+      {/* Thanh tìm kiếm + bộ lọc */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-card p-3 shadow-card">
+        <div className="relative min-w-[200px] flex-1">
+          <Search size={16} className="absolute left-3 top-3 text-faint" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Tìm công trình, CĐT, số HĐ…"
+            className="h-10 w-full rounded-lg border border-line bg-page pl-9 pr-3 text-sm text-ink outline-none placeholder:text-faint focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          />
+        </div>
+        <select
+          value={fCus}
+          onChange={(e) => setFCus(e.target.value)}
+          className="h-10 rounded-lg border border-line bg-page px-3 text-sm text-ink outline-none focus:border-brand-500"
+        >
+          <option value="">Tất cả CĐT / công trình</option>
+          {cusNames.map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+        <select
+          value={fStatus}
+          onChange={(e) => setFStatus(e.target.value)}
+          className="h-10 rounded-lg border border-line bg-page px-3 text-sm text-ink outline-none focus:border-brand-500"
+        >
+          <option value="">Mọi trạng thái</option>
+          <option value="overdue">Có quá hạn</option>
+          <option value="progress">Đang thực hiện</option>
+          <option value="done">Đã thu đủ</option>
+        </select>
+        {hasFilter && (
+          <button
+            onClick={() => {
+              setQ("");
+              setFCus("");
+              setFStatus("");
+            }}
+            className="flex h-10 items-center gap-1 rounded-lg px-3 text-sm text-faint hover:text-danger"
+          >
+            <X size={15} /> Xóa lọc
+          </button>
+        )}
+      </div>
+
       {/* Thanh NĂM */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-nav px-4 py-3 text-navfg">
         <div className="flex flex-wrap items-center gap-3">
@@ -229,7 +369,7 @@ export default function Contracts() {
             <Archive size={18} /> NĂM {activeYear}
           </button>
           <span className="text-xs text-navdim">
-            {byCus.size} công ty · {inYear.length} hợp đồng/phụ lục
+            {byCus.size} công ty · {inYear.length} hợp đồng/phụ lục · bấm để xổ ra / thu gọn
           </span>
           <div className="flex gap-1">
             {years.map((y) => (
@@ -254,172 +394,223 @@ export default function Contracts() {
         </div>
       </div>
 
-      {/* Tìm kiếm + thêm */}
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="relative max-w-xs flex-1">
-          <Search size={16} className="absolute left-3 top-3 text-faint" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Tìm công ty / công trình…"
-            className="h-10 w-full rounded-lg border border-line bg-card pl-9 pr-3 text-sm text-ink outline-none placeholder:text-faint focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-          />
-        </div>
-        {canEdit && (
-          <Btn onClick={() => setModal(true)}>
-            <span className="flex items-center gap-1.5">
-              <Plus size={16} /> <span className="hidden sm:inline">Thêm HĐ/PL</span>
-              <span className="sm:hidden">Thêm</span>
-            </span>
-          </Btn>
-        )}
-      </div>
-
       {/* Danh sách gom theo công ty */}
       {yearOpen && (
-      <div className="space-y-3">
-        {filtered.map((g) => {
-          const open = openCus[g.key] ?? true;
-          return (
-            <div key={g.key} className="overflow-hidden rounded-xl border border-line bg-card shadow-card">
-              {/* Header công ty */}
-              <button
-                onClick={() => setOpenCus((s) => ({ ...s, [g.key]: !open }))}
-                className="flex w-full items-start gap-3 p-4 text-left hover:bg-hover"
+        <div className="space-y-3">
+          {filtered.map((g) => {
+            const open = openCus[g.key] ?? true;
+            return (
+              <div
+                key={g.key}
+                className="overflow-hidden rounded-xl border border-line bg-card shadow-card"
               >
-                {open ? (
-                  <ChevronDown size={18} className="mt-0.5 shrink-0 text-faint" />
-                ) : (
-                  <ChevronRight size={18} className="mt-0.5 shrink-0 text-faint" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 font-bold text-ink">
-                    <Building2 size={16} className="text-brand-500" /> {g.name}
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-faint">
-                    <span>{g.contracts.length} hợp đồng/phụ lục</span>
-                    {g.loc && (
+                {/* Header công ty */}
+                <div className="flex items-start gap-3 p-4">
+                  <button
+                    onClick={() => setOpenCus((s) => ({ ...s, [g.key]: !open }))}
+                    className="mt-0.5 shrink-0 text-faint hover:text-ink"
+                    title={open ? "Thu gọn" : "Mở"}
+                  >
+                    {open ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                  </button>
+
+                  <div className="min-w-0 flex-1">
+                    <button
+                      onClick={() => setOpenCus((s) => ({ ...s, [g.key]: !open }))}
+                      className="flex items-center gap-2 text-left font-bold text-ink hover:text-brand-500"
+                    >
+                      <Building2 size={16} className="shrink-0 text-brand-500" /> {g.name}
+                    </button>
+                    {g.maDuAn && (
+                      <div className="mt-0.5 text-xs text-faint">Mã dự án: {g.maDuAn}</div>
+                    )}
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-faint">
                       <span className="flex items-center gap-1">
-                        <MapPin size={11} /> {g.loc}
+                        <Layers size={11} /> {g.contracts.length} HĐ/PL · {g.rowCount} đợt
                       </span>
+                      {g.fileCount > 0 && (
+                        <span className="flex items-center gap-1 text-accent">
+                          <Paperclip size={11} /> {g.fileCount} hồ sơ
+                        </span>
+                      )}
+                      {g.loc && (
+                        <span className="flex items-center gap-1">
+                          <MapPin size={11} /> {g.loc}
+                        </span>
+                      )}
+                      {g.updated && (
+                        <span className="flex items-center gap-1">
+                          <CalendarClock size={11} /> Cập nhật {fmtDate(g.updated)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="h-2 max-w-xs flex-1 overflow-hidden rounded-full bg-hover">
+                        <div
+                          className="h-full rounded-full bg-brand-500"
+                          style={{ width: `${g.pct}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold text-brand-500">{g.pct}% đã thu</span>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <div className="text-right text-xs">
+                      <div className="text-faint">
+                        Tổng đã thu <b className="text-brand-500">{fmtVND(g.paid)}</b>
+                        <span className="text-faint"> / {fmtTy(g.value)}</span>
+                      </div>
+                      <div className="mt-0.5 text-faint">
+                        Còn phải thu <b className="text-ink">{fmtVND(g.os)}</b>
+                      </div>
+                    </div>
+                    {canEdit && (
+                      <button
+                        onClick={() => openAdd({ customerName: g.name })}
+                        className="flex items-center gap-1 rounded-lg border border-dashed border-brand-500 px-2.5 py-1 text-xs font-semibold text-brand-500 hover:bg-brandtint"
+                      >
+                        <Plus size={13} /> Thêm HĐ/PL
+                      </button>
                     )}
                   </div>
-                  <div className="mt-2 flex items-center gap-2">
-                    <div className="h-2 max-w-xs flex-1 overflow-hidden rounded-full bg-hover">
-                      <div className="h-full rounded-full bg-brand-500" style={{ width: `${g.pct}%` }} />
-                    </div>
-                    <span className="text-xs font-semibold text-brand-500">{g.pct}% đã thu</span>
-                  </div>
                 </div>
-                <div className="shrink-0 text-right text-xs">
-                  <div className="text-faint">
-                    Đã thu <b className="text-brand-500">{fmtVND(g.paid)}</b>
-                  </div>
-                  <div className="mt-0.5 text-faint">
-                    Còn phải thu <b className="text-ink">{fmtVND(g.os)}</b>
-                  </div>
-                </div>
-              </button>
 
-              {/* Hợp đồng của công ty */}
-              {open && (
-                <div className="space-y-2 border-t border-line bg-page/40 p-3">
-                  {g.contracts.map((c) => (
-                    <div
-                      key={c.id}
-                      onClick={() => nav(`/contracts/${c.id}`)}
-                      className="cursor-pointer rounded-lg border border-line bg-card p-3 hover:border-brand-400"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-white">
-                              Hợp đồng
-                            </span>
-                            <span className="font-semibold text-ink">{c.code || c.name}</span>
-                            {c.late && (
-                              <span className="rounded-full bg-danger px-2 py-0.5 text-[10px] font-semibold text-white">
-                                QUÁ HẠN
+                {/* Hợp đồng của công ty */}
+                {open && (
+                  <div className="space-y-2 border-t border-line bg-page/40 p-3">
+                    {g.contracts.map((c) => (
+                      <div
+                        key={c.id}
+                        onClick={() => nav(`/contracts/${c.id}`)}
+                        className="cursor-pointer rounded-lg border border-line bg-card p-3 hover:border-brand-400"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase text-white ${
+                                  c.loai === "Phụ lục" ? "bg-warning" : "bg-accent"
+                                }`}
+                              >
+                                {c.loai || "Hợp đồng"}
                               </span>
+                              <span className="font-semibold text-ink">{c.code || c.name}</span>
+                              {c.late && (
+                                <span className="rounded-full bg-danger px-2 py-0.5 text-[10px] font-semibold text-white">
+                                  QUÁ HẠN
+                                </span>
+                              )}
+                              {c.fileCount > 0 && (
+                                <span className="flex items-center gap-0.5 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent">
+                                  <Paperclip size={10} /> {c.fileCount}
+                                </span>
+                              )}
+                            </div>
+                            {c.work && (
+                              <div className="mt-1 max-w-2xl text-xs text-faint">
+                                Hạng mục: {c.work}
+                              </div>
                             )}
                           </div>
-                          {c.work && (
-                            <div className="mt-1 max-w-2xl text-xs text-faint">
-                              Hạng mục: {c.work}
+                          <div className="shrink-0 text-right text-xs">
+                            <div className="text-faint">
+                              Đã thu <b className="text-brand-500">{fmtVND(c.paid)}</b>
                             </div>
-                          )}
-                        </div>
-                        <div className="shrink-0 text-right text-xs">
-                          <div className="text-faint">
-                            Đã thu <b className="text-brand-500">{fmtVND(c.paid)}</b>
-                          </div>
-                          <div className="text-faint">
-                            Còn phải thu <b className="text-ink">{fmtVND(c.os)}</b>
+                            <div className="text-faint">
+                              Còn phải thu <b className="text-ink">{fmtVND(c.os)}</b>
+                            </div>
                           </div>
                         </div>
+                        {/* Dãy đợt Đ1..Đn */}
+                        <div className="mt-3">
+                          <Stepper rows={c.rows} />
+                        </div>
                       </div>
-                      {/* Dãy đợt Đ1..Đn */}
-                      <div className="mt-3">
-                        <Stepper rows={c.rows} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {filtered.length === 0 && (
+            <div className="rounded-xl border border-line bg-card px-4 py-10 text-center text-faint">
+              {hasFilter
+                ? "Không tìm thấy công trình phù hợp bộ lọc."
+                : `Không có hợp đồng nào trong năm ${activeYear}.`}
             </div>
-          );
-        })}
-        {filtered.length === 0 && (
-          <div className="rounded-xl border border-line bg-card px-4 py-10 text-center text-faint">
-            Không có hợp đồng nào trong năm {activeYear}.
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       )}
 
       {/* Chú giải màu đợt */}
       <div className="mt-4 flex flex-wrap gap-3 text-[11px] text-sub">
-        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-full bg-brand-500" /> Đã thu đủ</span>
-        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-full bg-warning" /> Đang xử lý</span>
-        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-full bg-danger" /> Quá hạn</span>
-        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-full bg-line" /> Chưa tới</span>
+        <span className="flex items-center gap-1">
+          <span className="h-3 w-3 rounded-full bg-brand-500" /> Đã thu đủ
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-3 w-3 rounded-full bg-warning" /> Đang xử lý
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-3 w-3 rounded-full bg-danger" /> Quá hạn
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-3 w-3 rounded-full bg-line" /> Chưa tới
+        </span>
       </div>
 
+      {/* Modal thêm HĐ/PL */}
       <Modal
         open={modal}
         onClose={() => setModal(false)}
-        title="Thêm hợp đồng / công trình"
+        title="Thêm hợp đồng / phụ lục"
         wide
         footer={
           <>
-            <Btn variant="ghost" onClick={() => setModal(false)}>Hủy</Btn>
-            <Btn onClick={saveContract} disabled={saving}>{saving ? "Đang lưu…" : "Lưu hợp đồng"}</Btn>
+            <Btn variant="ghost" onClick={() => setModal(false)}>
+              Hủy
+            </Btn>
+            <Btn onClick={saveContract} disabled={saving}>
+              {saving ? "Đang lưu…" : "Lưu"}
+            </Btn>
           </>
         }
       >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Loại *">
+            <Select value={form.loai} onChange={set("loai")}>
+              <option value="Hợp đồng">Hợp đồng</option>
+              <option value="Phụ lục">Phụ lục</option>
+            </Select>
+          </Field>
           <Field label="Tên công trình *">
             <Input value={form.name} onChange={set("name")} placeholder="VD: HOWELL" />
           </Field>
-          <Field label="Số hợp đồng" hint="Năm trong số HĐ dùng để xếp vào kho">
+          <Field label="Số hợp đồng / phụ lục" hint="Năm trong số HĐ dùng để xếp vào kho">
             <Input value={form.code} onChange={set("code")} placeholder="01/2026/HĐXD-HPCS" />
+          </Field>
+          <Field label="Mã dự án">
+            <Input value={form.maDuAn} onChange={set("maDuAn")} placeholder="HW-VSIP3" />
           </Field>
           <Field label="Chọn chủ đầu tư có sẵn">
             <Select value={form.customerName} onChange={set("customerName")}>
               <option value="">— Chọn —</option>
               {customers.map((c) => (
-                <option key={c.id} value={c.name}>{c.name}</option>
+                <option key={c.id} value={c.name}>
+                  {c.name}
+                </option>
               ))}
             </Select>
           </Field>
           <Field label="…hoặc nhập chủ đầu tư mới">
-            <Input value={form.newCustomer} onChange={set("newCustomer")} placeholder="Tên công ty CĐT" />
+            <Input
+              value={form.newCustomer}
+              onChange={set("newCustomer")}
+              placeholder="Tên công ty CĐT"
+            />
           </Field>
           <Field label="Giá trị hợp đồng (sau thuế)">
             <Input type="number" value={form.totalAfterTax} onChange={set("totalAfterTax")} />
-          </Field>
-          <Field label="Mã dự án">
-            <Input value={form.maDuAn} onChange={set("maDuAn")} placeholder="HW-VSIP3" />
           </Field>
           <div className="sm:col-span-2">
             <Field label="Hạng mục công việc">
@@ -432,6 +623,34 @@ export default function Contracts() {
             </Field>
           </div>
         </div>
+      </Modal>
+
+      {/* Modal thêm khách hàng */}
+      <Modal
+        open={custModal}
+        onClose={() => setCustModal(false)}
+        title="Thêm khách hàng (chủ đầu tư) mới"
+        footer={
+          <>
+            <Btn variant="ghost" onClick={() => setCustModal(false)}>
+              Hủy
+            </Btn>
+            <Btn onClick={saveCustomer} disabled={custSaving}>
+              {custSaving ? "Đang lưu…" : "Lưu khách hàng"}
+            </Btn>
+          </>
+        }
+      >
+        <Field label="Tên chủ đầu tư *">
+          <Input
+            value={custName}
+            onChange={(e) => setCustName(e.target.value)}
+            placeholder="VD: CÔNG TY TNHH ..."
+          />
+        </Field>
+        <p className="mt-2 text-xs text-faint">
+          Sau khi thêm, chủ đầu tư này sẽ xuất hiện trong danh sách khi thêm hợp đồng / phụ lục.
+        </p>
       </Modal>
     </div>
   );

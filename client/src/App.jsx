@@ -62,6 +62,8 @@ export default function App() {
   if (!user) return <Login />;
 
   const isHome = pathname === "/";
+  // Trang chủ và Kho lưu trữ tự vẽ tiêu đề riêng trong nội dung
+  const ownHeader = isHome || pathname === "/contracts";
   const title = TITLES.find((t) => t.re.test(pathname))?.title || "HPC Receivable";
 
   return (
@@ -122,8 +124,8 @@ export default function App() {
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 pb-10 xl:px-6">
-          {/* Page Title — trang chủ tự vẽ 2 tab trong Overview */}
-          {!isHome && (
+          {/* Page Title — trang chủ + Kho lưu trữ tự vẽ tiêu đề riêng */}
+          {!ownHeader && (
             <div className="py-4 xl:py-6">
               <h1 className="truncate text-2xl font-bold text-ink xl:text-[28px] xl:leading-9">
                 {title}

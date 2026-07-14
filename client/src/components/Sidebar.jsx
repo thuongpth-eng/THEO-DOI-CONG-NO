@@ -60,15 +60,12 @@ export default function Sidebar({ open = false, onClose }) {
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center gap-3 px-5 py-5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white p-1">
-            <Logo size={36} />
+        <div className="px-4 py-4">
+          <div className="flex items-center justify-center rounded-xl bg-white px-3 py-3 shadow-sm">
+            <Logo size={54} />
           </div>
-          <div className="min-w-0 leading-snug">
-            <div className="text-[12.5px] font-bold uppercase tracking-wide text-navfg">
-              Kiểm soát hợp đồng chủ đầu tư
-            </div>
-            <div className="text-[11px] text-navdim">HP CONS</div>
+          <div className="mt-2 text-center text-[11px] font-semibold uppercase tracking-wide text-navdim">
+            Kiểm soát hợp đồng chủ đầu tư
           </div>
         </div>
 

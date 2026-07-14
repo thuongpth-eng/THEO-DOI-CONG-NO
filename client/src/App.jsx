@@ -81,7 +81,9 @@ export default function App() {
             <Menu size={22} />
           </button>
           <div className="flex min-w-0 items-center gap-2">
-            <Logo size={26} />
+            <span className="flex shrink-0 items-center rounded-md bg-white px-1.5 py-1">
+              <Logo size={22} />
+            </span>
             <span className="truncate text-[13px] font-bold uppercase text-ink">
               Kiểm soát hợp đồng chủ đầu tư
             </span>

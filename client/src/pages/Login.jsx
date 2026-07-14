@@ -33,10 +33,10 @@ export default function Login() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-6 flex flex-col items-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white p-1.5 shadow-card">
-            <Logo size={52} />
+          <div className="flex items-center justify-center rounded-2xl bg-white px-6 py-4 shadow-card">
+            <Logo size={76} />
           </div>
-          <h1 className="mt-3 text-center text-lg font-bold uppercase text-ink">
+          <h1 className="mt-4 text-center text-lg font-bold uppercase text-ink">
             Kiểm soát hợp đồng chủ đầu tư
           </h1>
           <p className="text-sm text-faint">HP CONS · Công nợ &amp; dòng tiền</p>

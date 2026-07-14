@@ -518,22 +518,6 @@ export default function Contracts() {
         </div>
       )}
 
-      {/* Chú giải màu đợt */}
-      <div className="mt-4 flex flex-wrap gap-3 text-[11px] text-sub">
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded-full bg-brand-500" /> Đã thu đủ
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded-full bg-warning" /> Đang xử lý
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded-full bg-danger" /> Quá hạn
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded-full bg-line" /> Chưa tới
-        </span>
-      </div>
-
       {/* Modal thêm HĐ/PL */}
       <Modal
         open={modal}

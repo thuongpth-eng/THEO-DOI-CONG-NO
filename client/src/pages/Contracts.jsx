@@ -15,7 +15,7 @@ import {
   X,
 } from "lucide-react";
 import api from "../lib/data";
-import { fmtVND, fmtTy, fmtDate, outstanding, daysLate } from "../lib/models";
+import { fmtDate, outstanding, daysLate } from "../lib/models";
 import Modal, { Field, Input, Textarea, Select, Btn } from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
 
@@ -70,7 +70,7 @@ function Stepper({ rows }) {
           {i > 0 && <div className="h-0.5 flex-1 bg-line" />}
           <div
             className="flex flex-col items-center"
-            title={`${r.dot}: ${fmtVND(r.value)} · ${
+            title={`${r.dot} · ${
               { overdue: "Quá hạn", paid: "Đã thu đủ", progress: "Đang xử lý", todo: "Chưa tới" }[
                 stageState(r)
               ]
@@ -277,8 +277,6 @@ export default function Contracts() {
   });
   filtered.sort((a, b) => b.os - a.os);
 
-  const yearValue = inYear.reduce((s, c) => s + (c.totalAfterTax || c.value), 0);
-  const yearPaid = inYear.reduce((s, c) => s + c.paid, 0);
   const hasFilter = q || fCus || fStatus;
   const cusNames = [...new Set(groups.map((g) => g.name))].sort((a, b) => a.localeCompare(b, "vi"));
 
@@ -386,13 +384,6 @@ export default function Contracts() {
             ))}
           </div>
         </div>
-        <div className="text-right text-xs">
-          <span className="text-navdim">Đã thu </span>
-          <b className="text-brand-400">{fmtVND(yearPaid)}</b>
-          <span className="text-navdim"> / {fmtTy(yearValue)}</span>
-          <span className="ml-2 text-navdim">Còn phải thu </span>
-          <b className="text-warning">{fmtVND(yearValue - yearPaid)}</b>
-        </div>
       </div>
 
       {/* Danh sách gom theo công ty */}
@@ -456,25 +447,16 @@ export default function Contracts() {
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 flex-col items-end gap-2">
-                    <div className="text-right text-xs">
-                      <div className="text-faint">
-                        Tổng đã thu <b className="text-brand-500">{fmtVND(g.paid)}</b>
-                        <span className="text-faint"> / {fmtTy(g.value)}</span>
-                      </div>
-                      <div className="mt-0.5 text-faint">
-                        Còn phải thu <b className="text-ink">{fmtVND(g.os)}</b>
-                      </div>
-                    </div>
-                    {canEdit && (
+                  {canEdit && (
+                    <div className="flex shrink-0 flex-col items-end gap-2">
                       <button
                         onClick={() => openAdd({ customerName: g.name })}
                         className="flex items-center gap-1 rounded-lg border border-dashed border-brand-500 px-2.5 py-1 text-xs font-semibold text-brand-500 hover:bg-brandtint"
                       >
                         <Plus size={13} /> Thêm HĐ/PL
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Hợp đồng của công ty */}
@@ -513,14 +495,6 @@ export default function Contracts() {
                                 Hạng mục: {c.work}
                               </div>
                             )}
-                          </div>
-                          <div className="shrink-0 text-right text-xs">
-                            <div className="text-faint">
-                              Đã thu <b className="text-brand-500">{fmtVND(c.paid)}</b>
-                            </div>
-                            <div className="text-faint">
-                              Còn phải thu <b className="text-ink">{fmtVND(c.os)}</b>
-                            </div>
                           </div>
                         </div>
                         {/* Dãy đợt Đ1..Đn */}

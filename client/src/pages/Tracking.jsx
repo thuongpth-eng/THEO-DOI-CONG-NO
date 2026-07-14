@@ -158,7 +158,7 @@ const emptyForm = {
 
 const STATUS_OPTS = STATUS_NAMES.map((n, i) => ({ value: i, label: n }));
 
-export default function Tracking() {
+export default function Tracking({ summary = false, embedded = false }) {
   const { canEdit } = useAuth();
   const [contracts, setContracts] = useState([]);
   const [installments, setInstallments] = useState([]);
@@ -373,14 +373,19 @@ export default function Tracking() {
   const cusNames = [...new Set(groups.map((g) => g.name))].sort((a, b) => a.localeCompare(b, "vi"));
 
   return (
-    <div className="pt-4 xl:pt-6">
+    <div className={embedded ? "" : "pt-4 xl:pt-6"}>
       {/* Tiêu đề + hành động */}
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-ink xl:text-2xl">Chi tiết công nợ theo công trình</h1>
-          <p className="mt-0.5 text-xs text-faint">
-            Bấm tên công ty để mở · <b className="text-brand-500">Nhập trực tiếp trên bảng</b> ·
-            Nợ chỉ tính đợt đã gửi hồ sơ / đến hạn
+          {!embedded && (
+            <h1 className="text-xl font-bold text-ink xl:text-2xl">Chi tiết công nợ theo công trình</h1>
+          )}
+          <p className={`text-xs text-faint ${embedded ? "" : "mt-0.5"}`}>
+            {summary ? (
+              <>Bấm tên công ty để xem tiến độ các đợt · Nợ chỉ tính đợt đã gửi hồ sơ / đến hạn</>
+            ) : (
+              <>Bấm tên công ty để mở · <b className="text-brand-500">Nhập trực tiếp trên bảng</b> · Nợ chỉ tính đợt đã gửi hồ sơ / đến hạn</>
+            )}
           </p>
         </div>
         {canEdit && (
@@ -585,22 +590,26 @@ export default function Tracking() {
                           </div>
                         )}
 
-                        <TrackTable
-                          rows={c.rows}
-                          canEdit={canEdit}
-                          onField={saveField}
-                          onDel={delDot}
-                        />
+                        {!summary && (
+                          <>
+                            <TrackTable
+                              rows={c.rows}
+                              canEdit={canEdit}
+                              onField={saveField}
+                              onDel={delDot}
+                            />
 
-                        {canEdit && (
-                          <div className="p-2">
-                            <button
-                              onClick={() => addDot(c, c.rows.length)}
-                              className="flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-1.5 text-xs font-medium text-sub hover:border-brand-400 hover:text-brand-500"
-                            >
-                              <Plus size={14} /> Thêm đợt
-                            </button>
-                          </div>
+                            {canEdit && (
+                              <div className="p-2">
+                                <button
+                                  onClick={() => addDot(c, c.rows.length)}
+                                  className="flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-1.5 text-xs font-medium text-sub hover:border-brand-400 hover:text-brand-500"
+                                >
+                                  <Plus size={14} /> Thêm đợt
+                                </button>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     ))}

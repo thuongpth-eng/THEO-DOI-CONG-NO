@@ -3,8 +3,7 @@ import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { Menu, Bell, Sun, Moon } from "lucide-react";
 import Logo from "./components/Logo";
 import Sidebar from "./components/Sidebar";
-import Overview from "./pages/Overview";
-import Tracking from "./pages/Tracking";
+import Receivable from "./pages/Receivable";
 import Contracts from "./pages/Contracts";
 import ContractDetail from "./pages/ContractDetail";
 import Users from "./pages/Users";
@@ -28,7 +27,7 @@ function Placeholder({ title }) {
 }
 
 const TITLES = [
-  { re: /^\/$/, title: "Dashboard tổng quan" },
+  { re: /^\/$/, title: "Theo dõi công nợ" },
   { re: /^\/contracts\/.+/, title: "Chi tiết công trình" },
   { re: /^\/contracts$/, title: "Kho lưu trữ hợp đồng thi công" },
   { re: /^\/links/, title: "Mã liên kết" },
@@ -63,8 +62,8 @@ export default function App() {
   if (!user) return <Login />;
 
   const isHome = pathname === "/";
-  // Trang chủ, Theo dõi công nợ và Kho lưu trữ tự vẽ tiêu đề riêng trong nội dung
-  const ownHeader = isHome || pathname === "/contracts" || pathname === "/tracking";
+  // Trang chủ (có thanh tab riêng) và Kho lưu trữ tự vẽ tiêu đề riêng trong nội dung
+  const ownHeader = isHome || pathname === "/contracts";
   const title = TITLES.find((t) => t.re.test(pathname))?.title || "HPC Receivable";
 
   return (
@@ -135,8 +134,8 @@ export default function App() {
             </div>
           )}
           <Routes>
-            <Route path="/" element={<Overview />} />
-            <Route path="/tracking" element={<Tracking />} />
+            <Route path="/" element={<Receivable />} />
+            <Route path="/tracking" element={<Navigate to="/" replace />} />
             <Route path="/contracts" element={<Contracts />} />
             <Route path="/contracts/:id" element={<ContractDetail />} />
             <Route path="/links" element={<Links />} />

@@ -10,6 +10,7 @@ import {
 } from "../lib/dashboard";
 import KpiStrip from "../components/dashboard/KpiStrip";
 import OverviewWidgets from "../components/dashboard/OverviewWidgets";
+import ProjectProgress from "../components/dashboard/ProjectProgress";
 import CollectionCalendar from "../components/dashboard/CollectionCalendar";
 import DueLists from "../components/dashboard/DueLists";
 import TrendCharts from "../components/dashboard/TrendCharts";
@@ -25,7 +26,7 @@ function ExportBtn({ icon: Icon, label, onClick }) {
   );
 }
 
-export default function Overview() {
+export default function Overview({ embedded = false }) {
   const [contracts, setContracts] = useState([]);
   const [installments, setInstallments] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -54,13 +55,15 @@ export default function Overview() {
   const overdueRows = buildOverdue(installments);
 
   return (
-    <div className="pt-4 xl:pt-6">
+    <div className={embedded ? "" : "pt-4 xl:pt-6"}>
       {/* Tiêu đề + nút xuất */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-ink xl:text-[28px] xl:leading-9">
-          Dashboard tổng quan
-        </h1>
-        <div className="flex flex-wrap gap-2">
+        {!embedded && (
+          <h1 className="text-2xl font-bold text-ink xl:text-[28px] xl:leading-9">
+            Dashboard tổng quan
+          </h1>
+        )}
+        <div className="ml-auto flex flex-wrap gap-2">
           <ExportBtn icon={FileSpreadsheet} label="Xuất Excel" onClick={() => exportExcel(contracts, installments)} />
           <ExportBtn icon={FileText} label="CSV" onClick={() => exportCSV(installments)} />
           <ExportBtn icon={Download} label="Sao lưu JSON" onClick={() => exportJSON({ customers, contracts, installments })} />
@@ -77,6 +80,7 @@ export default function Overview() {
       <div className="space-y-6">
         <KpiStrip k={kpis} />
         <OverviewWidgets kpis={kpis} customerData={custData} installments={installments} />
+        <ProjectProgress contracts={contracts} installments={installments} />
         <CollectionCalendar installments={installments} />
         <DueLists dueSoon={dueSoon} overdue={overdueRows} />
         <TrendCharts installments={installments} customers={customers} />

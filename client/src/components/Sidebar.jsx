@@ -1,7 +1,6 @@
 import { NavLink } from "react-router-dom";
 import {
   Link2,
-  LayoutDashboard,
   FileText,
   History,
   Users,
@@ -13,8 +12,7 @@ import { useAuth } from "../context/AuthContext";
 import Logo from "./Logo";
 
 const NAV = [
-  { to: "/", label: "Tổng quan", icon: LayoutDashboard, end: true },
-  { to: "/tracking", label: "Theo dõi công nợ", icon: Wallet },
+  { to: "/", label: "Theo dõi công nợ", icon: Wallet, end: true },
   { to: "/contracts", label: "Kho lưu trữ hợp đồng thi công", icon: FileText },
   { to: "/links", label: "Mã liên kết", icon: Link2 },
   { to: "/history", label: "Lịch sử thay đổi", icon: History },

@@ -94,6 +94,7 @@ export default function Contracts() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [year, setYear] = useState(null);
+  const [yearOpen, setYearOpen] = useState(true); // nút sổ của năm
   const [openCus, setOpenCus] = useState({}); // customerId → mở/đóng
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -219,9 +220,14 @@ export default function Contracts() {
       {/* Thanh NĂM */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-nav px-4 py-3 text-navfg">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="flex items-center gap-1.5 text-base font-bold">
+          <button
+            onClick={() => setYearOpen((v) => !v)}
+            className="flex items-center gap-1.5 rounded-md px-1 text-base font-bold hover:bg-navhover"
+            title={yearOpen ? "Thu gọn năm" : "Mở năm"}
+          >
+            {yearOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
             <Archive size={18} /> NĂM {activeYear}
-          </span>
+          </button>
           <span className="text-xs text-navdim">
             {byCus.size} công ty · {inYear.length} hợp đồng/phụ lục
           </span>
@@ -270,6 +276,7 @@ export default function Contracts() {
       </div>
 
       {/* Danh sách gom theo công ty */}
+      {yearOpen && (
       <div className="space-y-3">
         {filtered.map((g) => {
           const open = openCus[g.key] ?? true;
@@ -368,6 +375,7 @@ export default function Contracts() {
           </div>
         )}
       </div>
+      )}
 
       {/* Chú giải màu đợt */}
       <div className="mt-4 flex flex-wrap gap-3 text-[11px] text-sub">

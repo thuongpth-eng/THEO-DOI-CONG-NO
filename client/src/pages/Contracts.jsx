@@ -253,7 +253,8 @@ export default function Contracts() {
     g.late = g.contracts.some((c) => c.late);
     g.rowCount = g.contracts.reduce((s, c) => s + c.rows.length, 0);
     g.fileCount = g.contracts.reduce((s, c) => s + c.fileCount, 0);
-    g.updated = lastUpdate(g.contracts.flatMap((c) => c.rows));
+    const upd = g.contracts.map((c) => c.updatedAt).filter(Boolean).sort();
+    g.updated = upd.length ? upd[upd.length - 1] : lastUpdate(g.contracts.flatMap((c) => c.rows));
     // trạng thái tổng: quá hạn > hoàn thành > đang thực hiện
     g.st = g.late ? "overdue" : g.value > 0 && g.os <= 0.5 ? "done" : "progress";
   }

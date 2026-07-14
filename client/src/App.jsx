@@ -4,6 +4,7 @@ import { Menu, Bell, Sun, Moon } from "lucide-react";
 import Logo from "./components/Logo";
 import Sidebar from "./components/Sidebar";
 import Overview from "./pages/Overview";
+import Tracking from "./pages/Tracking";
 import Contracts from "./pages/Contracts";
 import ContractDetail from "./pages/ContractDetail";
 import Users from "./pages/Users";
@@ -62,8 +63,8 @@ export default function App() {
   if (!user) return <Login />;
 
   const isHome = pathname === "/";
-  // Trang chủ và Kho lưu trữ tự vẽ tiêu đề riêng trong nội dung
-  const ownHeader = isHome || pathname === "/contracts";
+  // Trang chủ, Theo dõi công nợ và Kho lưu trữ tự vẽ tiêu đề riêng trong nội dung
+  const ownHeader = isHome || pathname === "/contracts" || pathname === "/tracking";
   const title = TITLES.find((t) => t.re.test(pathname))?.title || "HPC Receivable";
 
   return (
@@ -135,6 +136,7 @@ export default function App() {
           )}
           <Routes>
             <Route path="/" element={<Overview />} />
+            <Route path="/tracking" element={<Tracking />} />
             <Route path="/contracts" element={<Contracts />} />
             <Route path="/contracts/:id" element={<ContractDetail />} />
             <Route path="/links" element={<Links />} />

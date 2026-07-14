@@ -295,11 +295,14 @@ export default function ContractDetail() {
         </div>
       </div>
 
-      {/* Bảng đối chiếu công nợ */}
-      <div className="mt-6 flex items-center justify-between">
-        <h3 className="text-base font-semibold text-ink">
-          Đối chiếu công nợ theo đợt ({rows.length})
-        </h3>
+      {/* Hồ sơ theo đợt (kho lưu trữ) */}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="text-base font-semibold text-ink">Hồ sơ theo đợt ({rows.length})</h3>
+          <p className="text-xs text-faint">
+            Đối chiếu công nợ chi tiết xem ở mục <b>Theo dõi công nợ</b>
+          </p>
+        </div>
         {canEdit && (
           <Btn onClick={openAdd}>
             <span className="flex items-center gap-1.5">
@@ -312,201 +315,102 @@ export default function ContractDetail() {
 
       {/* Danh sách dạng thẻ — điện thoại (<768px) */}
       <div className="mt-3 space-y-3 md:hidden">
-        {rows.map((r) => {
-          const late = daysLate(r);
-          return (
-            <div key={r.id} className="rounded-xl border border-line bg-card p-4 shadow-card">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="font-semibold text-ink">{r.dot}</div>
-                  <div className="mt-0.5 text-xs text-sub">{r.hoso}</div>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  <StatusBadge status={r.status} />
-                  <PayBadge r={r} />
-                </div>
+        {rows.map((r) => (
+          <div key={r.id} className="rounded-xl border border-line bg-card p-4 shadow-card">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="font-semibold text-ink">{r.dot}</div>
+                <div className="mt-0.5 text-xs text-sub">{r.hoso}</div>
               </div>
-              {r.noidung && <div className="mt-2 text-xs text-faint">{r.noidung}</div>}
-              <div className="mt-3 grid grid-cols-2 gap-2 border-t border-line pt-3 text-sm">
-                <div>
-                  <div className="text-[11px] text-faint">Giá trị đợt</div>
-                  <div className="tabular-nums text-sub">{fmtVND(r.value)}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[11px] text-faint">Còn lại</div>
-                  <div className="font-semibold tabular-nums text-ink">{fmtVND(outstanding(r))}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-faint">TT thực tế</div>
-                  <div className="tabular-nums text-brand-500">{fmtVND(r.paid)}</div>
-                  {(r.paid || 0) > 0 && (
-                    <div className="text-[10px] italic text-faint">{docSoVND(r.paid)}</div>
-                  )}
-                </div>
-                <div className="text-right">
-                  <div className="text-[11px] text-faint">Đến hạn</div>
-                  <div className="text-sub">
-                    {fmtDate(r.ngayDenHan)}
-                    {late > 0 && <span className="ml-1 font-semibold text-danger">trễ {late}n</span>}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-faint">Ngày gửi HS</div>
-                  <div className="text-sub">{fmtDate(r.ngayGuiHS)}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[11px] text-faint">Ngày thực thu</div>
-                  <div className="text-sub">{fmtDate(r.ngayTT)}</div>
-                </div>
-              </div>
-              <div className="mt-2 border-t border-line pt-2">
-                <div className="text-[11px] text-faint">Hồ sơ đính kèm</div>
-                <div className="mt-1">
-                  <FileLinks files={r.files} />
-                </div>
-              </div>
-              {r.ghichu && <div className="mt-2 text-xs italic text-warning">{r.ghichu}</div>}
-              {canEdit && (
-                <div className="mt-3 flex gap-2 border-t border-line pt-3">
-                  <button
-                    onClick={() => openEdit(r)}
-                    className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-lg border border-line text-sm font-medium text-sub"
-                  >
-                    <Pencil size={15} /> Sửa
-                  </button>
-                  <button
-                    onClick={() => delInst(r)}
-                    className="flex min-h-[44px] items-center justify-center rounded-lg border border-line px-4 text-danger"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              )}
+              <StatusBadge status={r.status} />
             </div>
-          );
-        })}
+            {r.noidung && <div className="mt-2 text-xs text-faint">{r.noidung}</div>}
+            <div className="mt-2 border-t border-line pt-2">
+              <div className="text-[11px] text-faint">Hồ sơ đính kèm (scan)</div>
+              <div className="mt-1">
+                <FileLinks files={r.files} />
+              </div>
+            </div>
+            {canEdit && (
+              <div className="mt-3 flex gap-2 border-t border-line pt-3">
+                <button
+                  onClick={() => openEdit(r)}
+                  className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-lg border border-line text-sm font-medium text-sub"
+                >
+                  <Pencil size={15} /> Sửa / đính kèm
+                </button>
+                <button
+                  onClick={() => delInst(r)}
+                  className="flex min-h-[44px] items-center justify-center rounded-lg border border-line px-4 text-danger"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
         {rows.length === 0 && (
           <div className="rounded-xl border border-line bg-card px-4 py-10 text-center text-faint">
-            Chưa có đợt thanh toán. Bấm “Thêm đợt”.
+            Chưa có đợt. Bấm “Thêm đợt”.
           </div>
         )}
       </div>
 
-      {/* Bảng đầy đủ — tablet & desktop (≥768px) */}
+      {/* Bảng hồ sơ — tablet & desktop (≥768px) */}
       <div className="mt-3 hidden rounded-xl border border-line bg-card shadow-card md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="h-12 border-b border-line bg-page/60 text-left text-[11px] uppercase tracking-wider text-faint">
                 <th className="whitespace-nowrap px-3 py-3 font-medium">Đợt</th>
-                <th className="min-w-[220px] px-3 py-3 font-medium">Nội dung cần hoàn thành</th>
-                <th className="min-w-[160px] px-3 py-3 font-medium">Hồ sơ yêu cầu</th>
+                <th className="min-w-[200px] px-3 py-3 font-medium">Hồ sơ yêu cầu</th>
+                <th className="min-w-[240px] px-3 py-3 font-medium">Nội dung</th>
                 <th className="whitespace-nowrap px-3 py-3 font-medium">Trạng thái hồ sơ</th>
-                <th className="whitespace-nowrap px-3 py-3 font-medium">Trạng thái thanh toán</th>
-                <th className="whitespace-nowrap px-3 py-3 font-medium">Ngày gửi HS</th>
-                <th className="whitespace-nowrap px-3 py-3 font-medium">Ngày xuất hóa đơn</th>
-                <th className="whitespace-nowrap px-3 py-3 text-center font-medium">Số ngày theo HĐ</th>
-                <th className="whitespace-nowrap px-3 py-3 text-right font-medium">Giá trị đợt</th>
-                <th className="whitespace-nowrap px-3 py-3 text-right font-medium">TT thực tế</th>
-                <th className="whitespace-nowrap px-3 py-3 font-medium">Ngày thực thu</th>
-                <th className="whitespace-nowrap px-3 py-3 text-right font-medium">Còn lại</th>
-                <th className="whitespace-nowrap px-3 py-3 font-medium">Công nợ đến hạn</th>
-                <th className="whitespace-nowrap px-3 py-3 text-center font-medium">Số ngày quá hạn</th>
-                <th className="whitespace-nowrap px-3 py-3 font-medium">Dự kiến thu theo HĐ</th>
-                <th className="whitespace-nowrap px-3 py-3 font-medium">Dự kiến thu QLDA</th>
-                <th className="whitespace-nowrap px-3 py-3 font-medium">Dự kiến thu CĐT</th>
-                <th className="min-w-[160px] px-3 py-3 font-medium">Ghi chú</th>
-                <th className="min-w-[150px] px-3 py-3 font-medium">Hồ sơ đính kèm</th>
+                <th className="min-w-[200px] px-3 py-3 font-medium">Hồ sơ đính kèm (scan)</th>
                 <th className="px-2 py-3"></th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
-                const late = daysLate(r);
-                return (
-                  <tr
-                    key={r.id}
-                    className="border-b border-line/60 align-top last:border-0 hover:bg-hover"
-                  >
-                    <td className="whitespace-nowrap px-3 py-3 font-semibold text-ink">{r.dot}</td>
-                    <td className="px-3 py-3 text-sub">
-                      <div className="max-w-[280px] text-xs">{r.noidung}</div>
-                    </td>
-                    <td className="px-3 py-3 text-xs font-medium text-sub">
-                      <div className="max-w-[180px]">{r.hoso}</div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <StatusBadge status={r.status} />
-                    </td>
-                    <td className="px-3 py-3">
-                      <PayBadge r={r} />
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-sub">{fmtDate(r.ngayGuiHS)}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-sub">{fmtDate(r.ngayXuatHD)}</td>
-                    <td className="px-3 py-3 text-center text-sub">{r.hanTT || "—"}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-sub">
-                      {fmtVND(r.value)}
-                    </td>
-                    <td className="px-3 py-3 text-right tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
-                      <div className="whitespace-nowrap">{fmtVND(r.paid)}</div>
-                      {(r.paid || 0) > 0 && (
-                        <div className="mt-0.5 max-w-[160px] text-[10px] font-normal italic text-faint">
-                          {docSoVND(r.paid)}
-                        </div>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-sub">{fmtDate(r.ngayTT)}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-right font-semibold tabular-nums text-ink">
-                      {fmtVND(outstanding(r))}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-sub">{fmtDate(r.ngayDenHan)}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-center">
-                      {late > 0 ? (
-                        <span className="inline-block rounded-full bg-danger px-2 py-0.5 text-xs font-semibold text-white">
-                          {late} ngày
-                        </span>
-                      ) : (
-                        <span className="text-faint">—</span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-sub">{fmtDate(r.duKienHD)}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-sub">{fmtDate(r.duKienQLDA)}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-sub">{fmtDate(r.duKienCDT)}</td>
-                    <td className="px-3 py-3">
-                      <div className="max-w-[200px] text-xs italic text-amber-600 dark:text-amber-400">
-                        {r.ghichu}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <FileLinks files={r.files} />
-                    </td>
-                    <td className="whitespace-nowrap px-2 py-3">
-                      {canEdit && (
-                        <>
-                          <button
-                            onClick={() => openEdit(r)}
-                            className="rounded p-1.5 text-faint hover:bg-hover hover:text-brand-600"
-                            title="Sửa"
-                          >
-                            <Pencil size={15} />
-                          </button>
-                          <button
-                            onClick={() => delInst(r)}
-                            className="rounded p-1.5 text-faint hover:bg-red-500/10 hover:text-red-600"
-                            title="Xóa"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+              {rows.map((r) => (
+                <tr
+                  key={r.id}
+                  className="border-b border-line/60 align-top last:border-0 hover:bg-hover"
+                >
+                  <td className="whitespace-nowrap px-3 py-3 font-semibold text-ink">{r.dot}</td>
+                  <td className="px-3 py-3 text-xs font-medium text-sub">{r.hoso}</td>
+                  <td className="px-3 py-3 text-xs text-faint">{r.noidung}</td>
+                  <td className="px-3 py-3">
+                    <StatusBadge status={r.status} />
+                  </td>
+                  <td className="px-3 py-3">
+                    <FileLinks files={r.files} />
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-3">
+                    {canEdit && (
+                      <>
+                        <button
+                          onClick={() => openEdit(r)}
+                          className="rounded p-1.5 text-faint hover:bg-hover hover:text-brand-600"
+                          title="Sửa / đính kèm hồ sơ"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          onClick={() => delInst(r)}
+                          className="rounded p-1.5 text-faint hover:bg-red-500/10 hover:text-red-600"
+                          title="Xóa"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={20} className="px-4 py-10 text-center text-faint">
-                    Chưa có đợt thanh toán. Bấm “Thêm đợt”.
+                  <td colSpan={6} className="px-4 py-10 text-center text-faint">
+                    Chưa có đợt. Bấm “Thêm đợt”.
                   </td>
                 </tr>
               )}

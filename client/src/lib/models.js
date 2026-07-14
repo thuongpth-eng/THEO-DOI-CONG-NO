@@ -112,6 +112,26 @@ export const daysToDue = (r) => {
   return Math.round((due - today()) / 86400000);
 };
 
+// Đợt đã "phát sinh công nợ" (đã gửi hồ sơ / đã đến hạn / đã thu một phần).
+// Đợt chưa tới (chưa gửi HS, chưa đến hạn) KHÔNG tính vào công nợ phải thu.
+export function arisen(r) {
+  if ((r.paid || 0) > 0) return true;
+  if ((r.status || 0) >= 2) return true; // 2 = đã gửi hồ sơ CĐT trở lên
+  if (r.ngayGuiHS || r.ngayXuatHD) return true;
+  const d = daysToDue(r);
+  if (d !== null && d <= 0) return true; // đã đến hạn / quá hạn
+  return false;
+}
+
+// Công nợ phải thu THỰC = chỉ cộng đợt đã phát sinh.
+export function receivable(installments) {
+  return installments.filter(arisen).reduce((s, r) => s + outstanding(r), 0);
+}
+// Phần chưa phát sinh (đợt tương lai) — để tham khảo, không tính vào nợ.
+export function notYetDue(installments) {
+  return installments.filter((r) => !arisen(r)).reduce((s, r) => s + outstanding(r), 0);
+}
+
 // ----- Tổng hợp trên tập đợt thanh toán -----
 export function summarize(installments) {
   let totalValue = 0,

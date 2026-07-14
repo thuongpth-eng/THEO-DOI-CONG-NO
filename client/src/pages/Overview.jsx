@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import { FileSpreadsheet, FileText, Download, Printer } from "lucide-react";
 import api, { backendName } from "../lib/data";
-import { exportExcel, exportCSV, exportJSON, printReport } from "../lib/exporter";
 import {
   buildKpis,
   buildCustomerProgress,
@@ -14,17 +12,6 @@ import ProjectProgress from "../components/dashboard/ProjectProgress";
 import CollectionCalendar from "../components/dashboard/CollectionCalendar";
 import DueLists from "../components/dashboard/DueLists";
 import TrendCharts from "../components/dashboard/TrendCharts";
-
-function ExportBtn({ icon: Icon, label, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex h-10 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-medium text-sub shadow-sm hover:border-brand-400 hover:text-brand-500"
-    >
-      <Icon size={14} /> <span className="hidden sm:inline">{label}</span>
-    </button>
-  );
-}
 
 export default function Overview({ embedded = false }) {
   const [contracts, setContracts] = useState([]);
@@ -56,21 +43,6 @@ export default function Overview({ embedded = false }) {
 
   return (
     <div className={embedded ? "" : "pt-4 xl:pt-6"}>
-      {/* Tiêu đề + nút xuất */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        {!embedded && (
-          <h1 className="text-2xl font-bold text-ink xl:text-[28px] xl:leading-9">
-            Dashboard tổng quan
-          </h1>
-        )}
-        <div className="ml-auto flex flex-wrap gap-2">
-          <ExportBtn icon={FileSpreadsheet} label="Xuất Excel" onClick={() => exportExcel(contracts, installments)} />
-          <ExportBtn icon={FileText} label="CSV" onClick={() => exportCSV(installments)} />
-          <ExportBtn icon={Download} label="Sao lưu JSON" onClick={() => exportJSON({ customers, contracts, installments })} />
-          <ExportBtn icon={Printer} label="In / PDF" onClick={() => printReport(contracts, installments)} />
-        </div>
-      </div>
-
       {backendName === "local" && (
         <div className="mb-5 flex items-center gap-2 rounded-lg border border-line bg-card px-4 py-2.5 text-sm text-sub">
           Đang chạy chế độ <b className="mx-1">thử nghiệm (local)</b> — dữ liệu thật đã chuyển từ file v31.

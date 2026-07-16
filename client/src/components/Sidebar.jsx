@@ -64,7 +64,7 @@ export default function Sidebar({ open = false, onClose }) {
           <div className="flex items-center justify-center rounded-xl bg-white px-3 py-3 shadow-sm">
             <Logo size={54} />
           </div>
-          <div className="mt-2 text-center text-[11px] font-semibold uppercase tracking-wide text-navdim">
+          <div className="mt-2 text-center text-sm font-bold uppercase leading-snug tracking-wide text-navfg">
             Kiểm soát hợp đồng chủ đầu tư
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Plus,
   Search,
@@ -25,63 +25,12 @@ import {
   arisen,
   receivable,
 } from "../lib/models";
+import { slug, yearOf, todayISO } from "../lib/contractsUtil";
 import Modal, { Field, Input, Textarea, Select, Btn } from "../components/Modal";
+import Stepper from "../components/shared/Stepper";
+import LoadingState from "../components/shared/LoadingState";
+import EmptyState from "../components/shared/EmptyState";
 import { useAuth } from "../context/AuthContext";
-
-const slug = (s) =>
-  "cus_" +
-  s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[đĐ]/g, "d")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 40);
-
-const yearOf = (c) => {
-  const m = (c.code || "").match(/(20\d{2})/) || (c.maDuAn || "").match(/(20\d{2})/);
-  return m ? m[1] : "Chưa rõ năm";
-};
-const todayISO = () => new Date().toISOString().slice(0, 10);
-
-function stageState(r) {
-  if (daysLate(r) > 0) return "overdue";
-  if (outstanding(r) <= 0.5 && (r.paid || 0) > 0) return "paid";
-  if (!arisen(r)) return "todo";
-  return "progress";
-}
-const DOT = {
-  overdue: "bg-danger text-white",
-  paid: "bg-brand-500 text-white",
-  progress: "bg-warning text-white",
-  todo: "bg-line text-sub",
-};
-function Stepper({ rows }) {
-  if (rows.length === 0)
-    return <span className="text-xs italic text-faint">Chưa có đợt</span>;
-  return (
-    <div className="flex items-center">
-      {rows.map((r, i) => (
-        <Fragment key={r.id}>
-          {i > 0 && <div className="h-0.5 w-4 bg-line sm:w-8" />}
-          <span
-            title={`${r.dot} · ${
-              { overdue: "Quá hạn", paid: "Đã thu đủ", progress: "Đang xử lý", todo: "Chưa tới" }[
-                stageState(r)
-              ]
-            }`}
-            className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${
-              DOT[stageState(r)]
-            }`}
-          >
-            {i + 1}
-          </span>
-        </Fragment>
-      ))}
-    </div>
-  );
-}
 
 /* Ô nhập trực tiếp trên bảng */
 function EditCell({ value, type = "text", options, onSave, align = "left", placeholder }) {
@@ -322,7 +271,7 @@ export default function Tracking({ summary = false, embedded = false }) {
   }, [enriched]);
   const activeYear = year && years.includes(year) ? year : years[0];
 
-  if (loading) return <div className="py-20 text-center text-faint">Đang tải…</div>;
+  if (loading) return <LoadingState />;
 
   const inYear = enriched.filter((c) => c.year === activeYear);
 
@@ -619,11 +568,14 @@ export default function Tracking({ summary = false, embedded = false }) {
             );
           })}
           {filtered.length === 0 && (
-            <div className="rounded-xl border border-line bg-card px-4 py-10 text-center text-faint">
-              {hasFilter
-                ? "Không tìm thấy công trình phù hợp bộ lọc."
-                : `Không có hợp đồng nào trong năm ${activeYear}.`}
-            </div>
+            <EmptyState
+              icon={Search}
+              title={
+                hasFilter
+                  ? "Không tìm thấy công trình phù hợp bộ lọc."
+                  : `Không có hợp đồng nào trong năm ${activeYear}.`
+              }
+            />
           )}
         </div>
       )}
@@ -789,7 +741,7 @@ function TrackTable({ rows, canEdit, onField, onDel }) {
                 <td className="px-1 py-1">
                   {RO ? <div className="text-right tabular-nums">{fmtVND(r.value)}</div> : <MoneyCell value={r.value} onSave={(v) => onField(r, { value: v })} />}
                 </td>
-                <td className="px-1 py-1 text-emerald-600 dark:text-emerald-400">
+                <td className="px-1 py-1 text-brand-500">
                   {RO ? (
                     <div className="text-right tabular-nums">{fmtVND(r.paid)}</div>
                   ) : (
@@ -829,13 +781,13 @@ function TrackTable({ rows, canEdit, onField, onDel }) {
                   {RO ? <span className="text-xs">{fmtDate(r.duKienCDT)}</span> : <EditCell type="date" value={r.duKienCDT} onSave={(v) => onField(r, { duKienCDT: v })} />}
                 </td>
                 <td className="px-1 py-1">
-                  {RO ? <span className="text-xs italic text-amber-600 dark:text-amber-400">{r.ghichu}</span> : <EditCell value={r.ghichu} onSave={(v) => onField(r, { ghichu: v })} />}
+                  {RO ? <span className="text-xs italic text-warning">{r.ghichu}</span> : <EditCell value={r.ghichu} onSave={(v) => onField(r, { ghichu: v })} />}
                 </td>
                 {canEdit && (
                   <td className="whitespace-nowrap px-2 py-1">
                     <button
                       onClick={() => onDel(r)}
-                      className="rounded p-1.5 text-faint hover:bg-red-500/10 hover:text-red-600"
+                      className="rounded p-1.5 text-faint hover:bg-danger/10 hover:text-danger"
                       title="Xóa đợt"
                     >
                       <Trash2 size={15} />

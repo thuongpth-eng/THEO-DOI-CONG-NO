@@ -12,7 +12,7 @@ function RoleBadge({ role }) {
   const tone = admin
     ? "bg-accent text-white"
     : edit
-    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+    ? "bg-brand-500/15 text-brand-600"
     : "bg-muted text-white";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${tone}`}>

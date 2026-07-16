@@ -12,6 +12,7 @@ import ProjectProgress from "../components/dashboard/ProjectProgress";
 import CollectionCalendar from "../components/dashboard/CollectionCalendar";
 import DueLists from "../components/dashboard/DueLists";
 import TrendCharts from "../components/dashboard/TrendCharts";
+import LoadingState from "../components/shared/LoadingState";
 
 export default function Overview({ embedded = false }) {
   const [contracts, setContracts] = useState([]);
@@ -33,8 +34,7 @@ export default function Overview({ embedded = false }) {
     })();
   }, []);
 
-  if (loading)
-    return <div className="py-20 text-center text-faint">Đang tải dữ liệu…</div>;
+  if (loading) return <LoadingState />;
 
   const kpis = buildKpis(contracts, customers, installments);
   const custData = buildCustomerProgress(customers, installments);

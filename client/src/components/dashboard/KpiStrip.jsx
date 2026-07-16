@@ -64,7 +64,7 @@ export default function KpiStrip({ k }) {
           value={fmtVND(k.outstanding)}
           sub={`${k.unpaidCount} đợt chưa thu đủ`}
           valueClass="text-ink"
-          iconClass="bg-slate-500/15 text-sub"
+          iconClass="bg-muted/15 text-sub"
         />
         <SmallKpi
           icon={FileClock}

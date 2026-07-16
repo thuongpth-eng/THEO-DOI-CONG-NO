@@ -22,6 +22,8 @@ import {
   summarize,
 } from "../lib/models";
 import Modal, { Field, Input, Textarea, Select, Btn } from "../components/Modal";
+import Stat from "../components/shared/Stat";
+import LoadingState from "../components/shared/LoadingState";
 import { useAuth } from "../context/AuthContext";
 
 const emptyInst = {
@@ -228,7 +230,7 @@ export default function ContractDetail() {
     nav("/contracts");
   }
 
-  if (loading) return <div className="py-20 text-center text-faint">Đang tải…</div>;
+  if (loading) return <LoadingState />;
   if (!contract)
     return (
       <div className="py-20 text-center text-faint">
@@ -276,7 +278,7 @@ export default function ContractDetail() {
                   <Pencil size={14} /> <span className="hidden sm:inline">Sửa</span>
                 </span>
               </Btn>
-              <Btn variant="ghost" className="text-red-600" onClick={delContract}>
+              <Btn variant="ghost" className="text-danger" onClick={delContract}>
                 <Trash2 size={15} />
               </Btn>
             </div>
@@ -285,12 +287,12 @@ export default function ContractDetail() {
 
         <div className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4 sm:grid-cols-4">
           <Stat label="Giá trị HĐ" value={fmtVND(contract.totalAfterTax)} />
-          <Stat label="Đã thu" value={fmtVND(s.totalPaid)} tone="text-emerald-600 dark:text-emerald-400" />
+          <Stat label="Đã thu" value={fmtVND(s.totalPaid)} tone="text-brand-500" />
           <Stat label="Còn phải thu" value={fmtVND(s.outstanding)} tone="text-brand-600 dark:text-brand-400" />
           <Stat
             label="Quá hạn"
             value={fmtVND(s.overdue)}
-            tone={s.overdue > 0 ? "text-red-600 dark:text-red-400" : "text-faint"}
+            tone={s.overdue > 0 ? "text-danger" : "text-faint"}
           />
         </div>
       </div>
@@ -397,7 +399,7 @@ export default function ContractDetail() {
                         </button>
                         <button
                           onClick={() => delInst(r)}
-                          className="rounded p-1.5 text-faint hover:bg-red-500/10 hover:text-red-600"
+                          className="rounded p-1.5 text-faint hover:bg-danger/10 hover:text-danger"
                           title="Xóa"
                         >
                           <Trash2 size={15} />
@@ -620,15 +622,6 @@ export default function ContractDetail() {
           </div>
         )}
       </Modal>
-    </div>
-  );
-}
-
-function Stat({ label, value, tone = "text-ink" }) {
-  return (
-    <div>
-      <div className="text-xs text-faint">{label}</div>
-      <div className={`mt-0.5 text-sm font-bold tabular-nums ${tone}`}>{value}</div>
     </div>
   );
 }

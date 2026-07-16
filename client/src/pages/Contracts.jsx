@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -13,27 +13,17 @@ import {
   CalendarClock,
   Paperclip,
   X,
+  FileText,
 } from "lucide-react";
 import api from "../lib/data";
 import { fmtDate, outstanding, daysLate } from "../lib/models";
+import { slug, yearOf } from "../lib/contractsUtil";
 import Modal, { Field, Input, Textarea, Select, Btn } from "../components/Modal";
+import Stepper from "../components/shared/Stepper";
+import PageHeader from "../components/shared/PageHeader";
+import LoadingState from "../components/shared/LoadingState";
+import EmptyState from "../components/shared/EmptyState";
 import { useAuth } from "../context/AuthContext";
-
-const slug = (s) =>
-  "cus_" +
-  s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[đĐ]/g, "d")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 40);
-
-const yearOf = (c) => {
-  const m = (c.code || "").match(/(20\d{2})/) || (c.maDuAn || "").match(/(20\d{2})/);
-  return m ? m[1] : "Chưa rõ năm";
-};
 
 // Ngày cập nhật của 1 hợp đồng = ngày mới nhất trong các đợt (không bịa nếu chưa có)
 function lastUpdate(rows) {
@@ -44,50 +34,6 @@ function lastUpdate(rows) {
     }
   }
   return best;
-}
-
-// Trạng thái 1 đợt → màu chấm trên thanh tiến trình
-function stageState(r) {
-  if (daysLate(r) > 0) return "overdue"; // quá hạn - đỏ
-  if (outstanding(r) <= 0.5) return "paid"; // đã thu đủ - xanh
-  if ((r.paid || 0) > 0 || (r.status || 0) >= 2) return "progress"; // đang xử lý - vàng
-  return "todo"; // chưa tới - xám
-}
-const DOT = {
-  overdue: "bg-danger text-white",
-  paid: "bg-brand-500 text-white",
-  progress: "bg-warning text-white",
-  todo: "bg-line text-sub",
-};
-
-function Stepper({ rows }) {
-  if (rows.length === 0)
-    return <div className="text-xs italic text-faint">Chưa có đợt thanh toán</div>;
-  return (
-    <div className="flex items-center">
-      {rows.map((r, i) => (
-        <Fragment key={r.id}>
-          {i > 0 && <div className="h-0.5 flex-1 bg-line" />}
-          <div
-            className="flex flex-col items-center"
-            title={`${r.dot} · ${
-              { overdue: "Quá hạn", paid: "Đã thu đủ", progress: "Đang xử lý", todo: "Chưa tới" }[
-                stageState(r)
-              ]
-            }`}
-          >
-            <span
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold ${
-                DOT[stageState(r)]
-              }`}
-            >
-              {i + 1}
-            </span>
-          </div>
-        </Fragment>
-      ))}
-    </div>
-  );
 }
 
 const emptyForm = {
@@ -229,7 +175,7 @@ export default function Contracts() {
   }, [enriched]);
   const activeYear = year && years.includes(year) ? year : years[0];
 
-  if (loading) return <div className="py-20 text-center text-faint">Đang tải…</div>;
+  if (loading) return <LoadingState />;
 
   const inYear = enriched.filter((c) => c.year === activeYear);
 
@@ -283,31 +229,26 @@ export default function Contracts() {
   return (
     <div className="pt-4 xl:pt-6">
       {/* Tiêu đề trang + hành động */}
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-ink xl:text-2xl">
-            Kho lưu trữ hợp đồng thi công
-          </h1>
-          <p className="mt-0.5 text-xs text-faint">
-            Bấm tên công trình để mở đối chiếu công nợ &amp; hồ sơ · Thêm hợp đồng / phụ lục cho
-            từng công ty
-          </p>
-        </div>
-        {canEdit && (
-          <div className="flex flex-wrap gap-2">
-            <Btn onClick={() => openAdd()}>
-              <span className="flex items-center gap-1.5">
-                <Plus size={16} /> Thêm hợp đồng / phụ lục
-              </span>
-            </Btn>
-            <Btn variant="ghost" onClick={() => setCustModal(true)}>
-              <span className="flex items-center gap-1.5">
-                <UserPlus size={16} /> Thêm khách hàng mới
-              </span>
-            </Btn>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        title="Kho lưu trữ hợp đồng thi công"
+        subtitle="Bấm tên công trình để mở đối chiếu công nợ & hồ sơ · Thêm hợp đồng / phụ lục cho từng công ty"
+        actions={
+          canEdit && (
+            <>
+              <Btn onClick={() => openAdd()}>
+                <span className="flex items-center gap-1.5">
+                  <Plus size={16} /> Thêm hợp đồng / phụ lục
+                </span>
+              </Btn>
+              <Btn variant="ghost" onClick={() => setCustModal(true)}>
+                <span className="flex items-center gap-1.5">
+                  <UserPlus size={16} /> Thêm khách hàng mới
+                </span>
+              </Btn>
+            </>
+          )
+        }
+      />
 
       {/* Thanh tìm kiếm + bộ lọc */}
       <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-card p-3 shadow-card">
@@ -499,7 +440,7 @@ export default function Contracts() {
                         </div>
                         {/* Dãy đợt Đ1..Đn */}
                         <div className="mt-3">
-                          <Stepper rows={c.rows} />
+                          <Stepper rows={c.rows} size="md" emptyText="Chưa có đợt thanh toán" />
                         </div>
                       </div>
                     ))}
@@ -509,11 +450,14 @@ export default function Contracts() {
             );
           })}
           {filtered.length === 0 && (
-            <div className="rounded-xl border border-line bg-card px-4 py-10 text-center text-faint">
-              {hasFilter
-                ? "Không tìm thấy công trình phù hợp bộ lọc."
-                : `Không có hợp đồng nào trong năm ${activeYear}.`}
-            </div>
+            <EmptyState
+              icon={FileText}
+              title={
+                hasFilter
+                  ? "Không tìm thấy công trình phù hợp bộ lọc."
+                  : `Không có hợp đồng nào trong năm ${activeYear}.`
+              }
+            />
           )}
         </div>
       )}

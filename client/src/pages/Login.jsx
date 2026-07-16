@@ -50,7 +50,7 @@ export default function Login() {
           <h2 className="mb-4 text-base font-semibold text-ink">Đăng nhập</h2>
 
           {err && (
-            <div className="mb-3 rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600 dark:text-red-400">
+            <div className="mb-3 rounded-lg bg-danger/15 px-3 py-2 text-sm text-danger">
               {err}
             </div>
           )}

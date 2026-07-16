@@ -4,7 +4,7 @@ export default function Modal({ open, onClose, title, children, footer, wide }) 
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 sm:p-8"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:p-8"
       onMouseDown={onClose}
     >
       <div
@@ -64,7 +64,7 @@ export function Btn({ variant = "primary", className = "", ...props }) {
   const styles = {
     primary: "bg-brand-600 text-white hover:bg-brand-700",
     ghost: "text-sub hover:bg-hover",
-    danger: "bg-danger text-white hover:bg-red-700",
+    danger: "bg-danger text-white hover:bg-danger/90",
     outline: "border border-line text-sub hover:bg-hover",
   };
   return (

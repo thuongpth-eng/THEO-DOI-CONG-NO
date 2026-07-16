@@ -1,5 +1,6 @@
 import { Building2, MapPin } from "lucide-react";
 import { fmtVND, fmtTy, outstanding, daysLate, receivable } from "../../lib/models";
+import Stat from "../shared/Stat";
 
 // Vòng tròn % (SVG thuần — không animation để tránh treo preview)
 function Ring({ pct, color }) {
@@ -33,15 +34,6 @@ const ST = {
   done: { label: "Hoàn thành", badge: "bg-brand-500", ring: "#60BB46" },
   progress: { label: "Đang thực hiện", badge: "bg-accent", ring: "#0969A7" },
 };
-
-function Stat({ label, value, cls = "text-ink" }) {
-  return (
-    <div className="min-w-0">
-      <div className="text-[11px] uppercase tracking-wide text-faint">{label}</div>
-      <div className={`truncate text-sm font-semibold tabular-nums ${cls}`}>{value}</div>
-    </div>
-  );
-}
 
 export default function ProjectProgress({ contracts, installments }) {
   const rows = contracts
@@ -124,12 +116,12 @@ export default function ProjectProgress({ contracts, installments }) {
 
               {/* Số liệu */}
               <div className="grid shrink-0 grid-cols-3 gap-4 border-t border-line pt-3 md:border-l md:border-t-0 md:pl-5 md:pt-0">
-                <Stat label="Đã thu" value={fmtVND(paid)} cls="text-brand-500" />
+                <Stat label="Đã thu" value={fmtVND(paid)} tone="text-brand-500" />
                 <Stat label="Còn phải thu" value={fmtVND(os)} />
                 <Stat
                   label="Quá hạn"
                   value={overdue > 0 ? fmtVND(overdue) : "—"}
-                  cls={overdue > 0 ? "text-danger" : "text-faint"}
+                  tone={overdue > 0 ? "text-danger" : "text-faint"}
                 />
               </div>
             </div>

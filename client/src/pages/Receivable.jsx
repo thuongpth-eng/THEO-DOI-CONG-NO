@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Overview from "./Overview";
 import Tracking from "./Tracking";
+import Tabs from "../components/shared/Tabs";
 import api from "../lib/data";
 import { exportExcel, exportCSV, exportJSON, printReport } from "../lib/exporter";
 
@@ -64,25 +65,7 @@ export default function Receivable() {
     <div className="pt-4 xl:pt-6">
       {/* Thanh tab + nút xuất/in (hiện trên mọi tab) */}
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-line">
-        <div className="flex flex-wrap items-center gap-1">
-          {TABS.map((t) => {
-            const active = tab === t.key;
-            return (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
-                  active
-                    ? "border-brand-500 text-brand-500"
-                    : "border-transparent text-faint hover:text-ink"
-                }`}
-              >
-                <t.icon size={16} />
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
+        <Tabs items={TABS} value={tab} onChange={setTab} />
         <div className="flex flex-wrap gap-2 pb-2">
           <ExportBtn
             icon={FileSpreadsheet}

@@ -107,7 +107,7 @@ export default function Sidebar({ open = false, onClose }) {
           </div>
           <button
             onClick={logout}
-            className="mt-1 flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-navdim hover:bg-navhover hover:text-red-400"
+            className="mt-1 flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-navdim hover:bg-navhover hover:text-danger"
           >
             <LogOut size={18} />
             Đăng xuất

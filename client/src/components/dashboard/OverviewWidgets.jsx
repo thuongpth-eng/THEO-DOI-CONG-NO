@@ -65,7 +65,7 @@ function TreeCell(props) {
   );
 }
 
-export default function OverviewWidgets({ kpis, customerData, installments }) {
+export default function OverviewWidgets({ kpis, customerData, installments, showGauge = true }) {
   const { isDark } = useTheme();
   const agingData = buildAgingSimple(installments).filter((a) => a.value > 0);
   const treeData = customerData
@@ -81,8 +81,9 @@ export default function OverviewWidgets({ kpis, customerData, installments }) {
   const progress = Math.round(kpis.progress * 10) / 10;
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+    <div className={`grid grid-cols-1 gap-4 ${showGauge ? "xl:grid-cols-3" : "xl:grid-cols-2"}`}>
       {/* Đồng hồ tiến độ thu */}
+      {showGauge && (
       <Card icon={Gauge} title="Tiến độ thu tiền" sub="Đã thu / tổng giá trị đợt">
         <div className="relative">
           <ResponsiveContainer width="100%" height={200}>
@@ -107,6 +108,7 @@ export default function OverviewWidgets({ kpis, customerData, installments }) {
           <span className="text-sub">Còn <b className="text-ink">{fmtTy(kpis.outstanding)}</b></span>
         </div>
       </Card>
+      )}
 
       {/* Treemap công nợ theo khách hàng */}
       <Card icon={LayoutGrid} title="Công nợ theo khách hàng" sub={`${treeData.length} chủ đầu tư còn nợ`}>

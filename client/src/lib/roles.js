@@ -2,7 +2,7 @@
 export const ROLES = {
   tgd: { key: "tgd", name: "Tổng Giám đốc", canEdit: false, admin: true },
   ptgd: { key: "ptgd", name: "Phó Tổng Giám đốc", canEdit: false, admin: true },
-  kt: { key: "kt", name: "Kế toán", canEdit: true, admin: false },
+  kt: { key: "kt", name: "Trợ lý TGĐ", canEdit: true, admin: false },
   pm: { key: "pm", name: "PM (Quản lý dự án)", canEdit: true, admin: false },
   kd: { key: "kd", name: "Kinh doanh / QS", canEdit: false, admin: false },
 };

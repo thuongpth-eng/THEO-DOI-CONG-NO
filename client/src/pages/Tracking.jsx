@@ -11,6 +11,7 @@ import {
   Layers,
   CalendarClock,
   Trash2,
+  Pencil,
   X,
 } from "lucide-react";
 import api from "../lib/data";
@@ -127,6 +128,9 @@ export default function Tracking({ summary = false, embedded = false }) {
   const [custModal, setCustModal] = useState(false);
   const [custName, setCustName] = useState("");
   const [custSaving, setCustSaving] = useState(false);
+  // Sửa cả đợt qua form (bổ sung cho nhập trực tiếp trên ô)
+  const [editForm, setEditForm] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
 
   async function reload() {
     const [ct, inst, cus] = await Promise.all([
@@ -235,6 +239,42 @@ export default function Tracking({ summary = false, embedded = false }) {
     if (!confirm(`Xóa "${r.dot}"? Không thể hoàn tác.`)) return;
     await api.deleteInstallment(r.id);
     setInstallments((prev) => prev.filter((x) => x.id !== r.id));
+  }
+
+  // Mở form sửa toàn bộ 1 đợt
+  const setEF = (k) => (e) => setEditForm((f) => ({ ...f, [k]: e.target.value }));
+  function openEditInst(r) {
+    setEditForm({ ...r });
+  }
+  async function saveEditInst() {
+    if (!editForm.dot?.trim()) return alert("Vui lòng nhập tên đợt (VD: ĐỢT 1).");
+    setEditSaving(true);
+    const patch = {
+      dot: editForm.dot.trim(),
+      hoso: editForm.hoso || "",
+      noidung: editForm.noidung || "",
+      status: Number(editForm.status) || 0,
+      value: Number(editForm.value) || 0,
+      paid: Number(editForm.paid) || 0,
+      ngayGuiHS: editForm.ngayGuiHS || "",
+      ngayXuatHD: editForm.ngayXuatHD || "",
+      ngayDenHan: editForm.ngayDenHan || "",
+      ngayTT: editForm.ngayTT || "",
+      duKienHD: editForm.duKienHD || "",
+      duKienQLDA: editForm.duKienQLDA || "",
+      duKienCDT: editForm.duKienCDT || "",
+      ghichu: editForm.ghichu || "",
+      hanTT: Number(editForm.hanTT) || 0,
+    };
+    const t = todayISO();
+    setInstallments((prev) => prev.map((r) => (r.id === editForm.id ? { ...r, ...patch } : r)));
+    setContracts((prev) =>
+      prev.map((c) => (c.id === editForm.contractId ? { ...c, updatedAt: t } : c))
+    );
+    await api.updateInstallment(editForm.id, patch);
+    api.updateContract(editForm.contractId, { updatedAt: t });
+    setEditSaving(false);
+    setEditForm(null);
   }
 
   const rowsByContract = useMemo(() => {
@@ -546,6 +586,7 @@ export default function Tracking({ summary = false, embedded = false }) {
                               canEdit={canEdit}
                               onField={saveField}
                               onDel={delDot}
+                              onEdit={openEditInst}
                             />
 
                             {canEdit && (
@@ -660,12 +701,86 @@ export default function Tracking({ summary = false, embedded = false }) {
           <Input value={custName} onChange={(e) => setCustName(e.target.value)} placeholder="VD: CÔNG TY TNHH ..." />
         </Field>
       </Modal>
+
+      {/* Modal sửa toàn bộ 1 đợt */}
+      <Modal
+        open={!!editForm}
+        onClose={() => setEditForm(null)}
+        title={editForm ? `Sửa ${editForm.dot || "đợt"}` : "Sửa đợt"}
+        wide
+        footer={
+          <>
+            <Btn variant="ghost" onClick={() => setEditForm(null)}>Hủy</Btn>
+            <Btn onClick={saveEditInst} disabled={editSaving}>{editSaving ? "Đang lưu…" : "Lưu"}</Btn>
+          </>
+        }
+      >
+        {editForm && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Tên đợt *">
+              <Input value={editForm.dot || ""} onChange={setEF("dot")} placeholder="ĐỢT 1" />
+            </Field>
+            <Field label="Trạng thái hồ sơ">
+              <Select value={editForm.status ?? 0} onChange={setEF("status")}>
+                {STATUS_NAMES.map((n, i) => (
+                  <option key={i} value={i}>{n}</option>
+                ))}
+              </Select>
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Hồ sơ yêu cầu">
+                <Input value={editForm.hoso || ""} onChange={setEF("hoso")} placeholder="BIÊN BẢN NGHIỆM THU + HÓA ĐƠN VAT" />
+              </Field>
+            </div>
+            <div className="sm:col-span-2">
+              <Field label="Nội dung cần hoàn thành">
+                <Textarea value={editForm.noidung || ""} onChange={setEF("noidung")} />
+              </Field>
+            </div>
+            <Field label="Giá trị đợt (đ)">
+              <Input type="number" value={editForm.value ?? ""} onChange={setEF("value")} />
+            </Field>
+            <Field label="Thanh toán thực tế (đ)">
+              <Input type="number" value={editForm.paid ?? ""} onChange={setEF("paid")} />
+            </Field>
+            <Field label="Ngày gửi hồ sơ">
+              <Input type="date" value={editForm.ngayGuiHS || ""} onChange={setEF("ngayGuiHS")} />
+            </Field>
+            <Field label="Ngày xuất hóa đơn">
+              <Input type="date" value={editForm.ngayXuatHD || ""} onChange={setEF("ngayXuatHD")} />
+            </Field>
+            <Field label="Số ngày theo HĐ">
+              <Input type="number" value={editForm.hanTT ?? ""} onChange={setEF("hanTT")} />
+            </Field>
+            <Field label="Ngày công nợ đến hạn">
+              <Input type="date" value={editForm.ngayDenHan || ""} onChange={setEF("ngayDenHan")} />
+            </Field>
+            <Field label="Ngày thực thu">
+              <Input type="date" value={editForm.ngayTT || ""} onChange={setEF("ngayTT")} />
+            </Field>
+            <Field label="Dự kiến thu theo HĐ">
+              <Input type="date" value={editForm.duKienHD || ""} onChange={setEF("duKienHD")} />
+            </Field>
+            <Field label="Dự kiến thu QLDA">
+              <Input type="date" value={editForm.duKienQLDA || ""} onChange={setEF("duKienQLDA")} />
+            </Field>
+            <Field label="Dự kiến thu CĐT">
+              <Input type="date" value={editForm.duKienCDT || ""} onChange={setEF("duKienCDT")} />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Ghi chú">
+                <Textarea value={editForm.ghichu || ""} onChange={setEF("ghichu")} rows={2} />
+              </Field>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
 
 /* Bảng công nợ 1 hợp đồng — nhập trực tiếp trên ô */
-function TrackTable({ rows, canEdit, onField, onDel }) {
+function TrackTable({ rows, canEdit, onField, onDel, onEdit }) {
   const RO = !canEdit;
   return (
     <div className="overflow-x-auto">
@@ -709,7 +824,18 @@ function TrackTable({ rows, canEdit, onField, onDel }) {
                 className={`border-b border-line/60 align-middle last:border-0 ${future ? "opacity-60" : ""}`}
               >
                 <td className="whitespace-nowrap px-3 py-1 font-semibold text-ink">
-                  {RO ? r.dot : <EditCell value={r.dot} onSave={(v) => onField(r, { dot: v })} />}
+                  <div className="flex items-center gap-1">
+                    {canEdit && (
+                      <button
+                        onClick={() => onEdit(r)}
+                        title="Sửa cả đợt (mở form đầy đủ)"
+                        className="shrink-0 rounded p-1 text-faint hover:bg-brand-500/10 hover:text-brand-500"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                    )}
+                    {RO ? r.dot : <EditCell value={r.dot} onSave={(v) => onField(r, { dot: v })} />}
+                  </div>
                 </td>
                 <td className="px-1 py-1">
                   {RO ? <span className="text-xs text-sub">{r.noidung}</span> : <EditCell value={r.noidung} onSave={(v) => onField(r, { noidung: v })} />}

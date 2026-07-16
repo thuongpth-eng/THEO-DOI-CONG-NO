@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
 const ThemeCtx = createContext(null);
-const LS_KEY = "hpc_theme"; // 'light' | 'dark' | 'system'
+const LS_KEY = "hpc_theme_v2"; // 'light' | 'dark' | 'system' (v2: mặc định SÁNG)
 
 function systemDark() {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
@@ -14,9 +14,9 @@ function apply(mode) {
 }
 
 export function ThemeProvider({ children }) {
-  // HPCons: giao diện TỐI là mặc định
-  const [mode, setMode] = useState(() => localStorage.getItem(LS_KEY) || "dark");
-  const [isDark, setIsDark] = useState(() => apply(localStorage.getItem(LS_KEY) || "dark"));
+  // Mặc định giao diện SÁNG (giống ảnh dashboard Sếp yêu cầu); có nút chuyển tối/sáng
+  const [mode, setMode] = useState(() => localStorage.getItem(LS_KEY) || "light");
+  const [isDark, setIsDark] = useState(() => apply(localStorage.getItem(LS_KEY) || "light"));
 
   useEffect(() => {
     localStorage.setItem(LS_KEY, mode);

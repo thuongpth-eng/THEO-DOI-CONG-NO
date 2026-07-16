@@ -8,15 +8,21 @@ import {
 } from "../lib/dashboard";
 import { outstanding, daysLate } from "../lib/models";
 import { yearOf } from "../lib/contractsUtil";
-import KpiStrip from "../components/dashboard/KpiStrip";
-import OverviewWidgets from "../components/dashboard/OverviewWidgets";
-import ProjectProgress from "../components/dashboard/ProjectProgress";
-import DueLists from "../components/dashboard/DueLists";
-import TrendCharts from "../components/dashboard/TrendCharts";
 import DashboardFilters from "../components/dashboard/DashboardFilters";
+import {
+  KpiCards,
+  DebtByCustomer,
+  DebtStructure,
+  MonthlyCashflow,
+  AlertsPanel,
+  DetailTable,
+  AgingBars,
+  DocMatrix,
+  DocTimeline,
+  TopDebtors,
+} from "../components/dashboard/blocks";
 import LoadingState from "../components/shared/LoadingState";
 
-// Trạng thái tổng của 1 công trình (để lọc)
 function contractStatus(rows) {
   if (rows.some((r) => daysLate(r) > 0)) return "overdue";
   const os = rows.reduce((s, r) => s + outstanding(r), 0);
@@ -54,6 +60,7 @@ export default function Overview({ embedded = false }) {
       if (!m.has(r.contractId)) m.set(r.contractId, []);
       m.get(r.contractId).push(r);
     }
+    for (const arr of m.values()) arr.sort((a, b) => (a.order || 0) - (b.order || 0));
     return m;
   }, [installments]);
 
@@ -62,15 +69,13 @@ export default function Overview({ embedded = false }) {
     [contracts]
   );
 
-  // Lọc theo bộ lọc bên trái
   const { fContracts, fInstallments, fCustomers } = useMemo(() => {
     const fc = contracts.filter((c) => {
       if (filters.year !== "all" && yearOf(c) !== filters.year) return false;
       if (filters.customerId !== "all" && c.customerId !== filters.customerId) return false;
       if (filters.contractId !== "all" && c.id !== filters.contractId) return false;
-      if (filters.status !== "all") {
-        if (contractStatus(rowsByContract.get(c.id) || []) !== filters.status) return false;
-      }
+      if (filters.status !== "all" && contractStatus(rowsByContract.get(c.id) || []) !== filters.status)
+        return false;
       return true;
     });
     const ids = new Set(fc.map((c) => c.id));
@@ -80,12 +85,41 @@ export default function Overview({ embedded = false }) {
     return { fContracts: fc, fInstallments: fi, fCustomers: fcus };
   }, [contracts, installments, customers, filters, rowsByContract]);
 
+  // Dữ liệu công trình đã làm giàu (cho bảng chi tiết / ma trận / timeline)
+  const enriched = useMemo(() => {
+    return fContracts
+      .map((c) => {
+        const rows = rowsByContract.get(c.id) || [];
+        const value = c.totalAfterTax || rows.reduce((s, r) => s + (r.value || 0), 0);
+        const paid = rows.reduce((s, r) => s + (r.paid || 0), 0);
+        const os = rows.reduce((s, r) => s + outstanding(r), 0);
+        const maxLate = rows.reduce((m, r) => Math.max(m, daysLate(r)), 0);
+        const s = rows.reduce((m, r) => Math.max(m, r.status || 0), 0);
+        return {
+          id: c.id,
+          name: c.name,
+          customerName: c.customerName,
+          rows,
+          value,
+          paid,
+          os,
+          maxLate,
+          st: contractStatus(rows),
+          s,
+          paidFull: os <= 0.5 && paid > 0,
+        };
+      })
+      .sort((a, b) => b.os - a.os);
+  }, [fContracts, rowsByContract]);
+
   if (loading) return <LoadingState />;
 
   const kpis = buildKpis(fContracts, fCustomers, fInstallments);
   const custData = buildCustomerProgress(fCustomers, fInstallments);
   const dueSoon = buildDueSoon(fInstallments, 30);
   const overdueRows = buildOverdue(fInstallments);
+  const matrixRows = enriched.slice(0, 6).map((c) => ({ id: c.id, name: c.name, s: c.s, paid: c.paidFull }));
+  const timelineItems = enriched.filter((c) => c.rows.length > 0).slice(0, 6);
 
   return (
     <div className={embedded ? "" : "pt-4 xl:pt-6"}>
@@ -106,16 +140,25 @@ export default function Overview({ embedded = false }) {
         />
 
         <div className="min-w-0 flex-1 space-y-4">
-          <KpiStrip k={kpis} />
-          <OverviewWidgets
-            kpis={kpis}
-            customerData={custData}
-            installments={fInstallments}
-            showGauge={false}
-          />
-          <TrendCharts installments={fInstallments} customers={fCustomers} />
-          <DueLists dueSoon={dueSoon} overdue={overdueRows} />
-          <ProjectProgress contracts={fContracts} installments={fInstallments} />
+          <KpiCards kpis={kpis} installments={fInstallments} />
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
+            <DebtByCustomer customerData={custData} />
+            <DebtStructure kpis={kpis} />
+            <MonthlyCashflow installments={fInstallments} />
+            <AlertsPanel overdue={overdueRows} dueSoon={dueSoon} />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <DetailTable rows={enriched} className="xl:col-span-2" />
+            <AgingBars installments={fInstallments} />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <DocMatrix rows={matrixRows} />
+            <DocTimeline items={timelineItems} />
+            <TopDebtors customerData={custData} />
+          </div>
         </div>
       </div>
     </div>

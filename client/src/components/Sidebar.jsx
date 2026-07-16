@@ -28,7 +28,7 @@ function Item({ to, label, icon: Icon, end }) {
       to={to}
       end={end}
       className={({ isActive }) =>
-        `flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+        `flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-semibold uppercase tracking-wide leading-tight transition-colors ${
           isActive
             ? "bg-brand-500 text-white"
             : "text-navdim hover:bg-navhover hover:text-navfg"
@@ -71,7 +71,7 @@ export default function Sidebar({ open = false, onClose }) {
 
         <a
           href={PORTAL_URL}
-          className="mx-3 mb-2 flex min-h-[44px] items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-navdim hover:bg-navhover hover:text-navfg"
+          className="mx-3 mb-2 flex min-h-[44px] items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide text-navdim hover:bg-navhover hover:text-navfg"
         >
           <ArrowLeft size={14} />
           Về HP CONS Portal
@@ -107,7 +107,7 @@ export default function Sidebar({ open = false, onClose }) {
           </div>
           <button
             onClick={logout}
-            className="mt-1 flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-navdim hover:bg-navhover hover:text-danger"
+            className="mt-1 flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-semibold uppercase tracking-wide text-navdim hover:bg-navhover hover:text-danger"
           >
             <LogOut size={18} />
             Đăng xuất

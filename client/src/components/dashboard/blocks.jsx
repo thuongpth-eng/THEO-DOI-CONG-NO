@@ -27,6 +27,8 @@ import {
   Send,
   UserCheck,
   CheckCircle2,
+  FileSpreadsheet,
+  FileBarChart2,
 } from "lucide-react";
 import { fmtVND, fmtTy, outstanding, daysLate } from "../../lib/models";
 import { useTheme } from "../../context/ThemeContext";
@@ -71,8 +73,9 @@ function FSel({ label, value, onChange, children }) {
     </div>
   );
 }
-export function FilterBar({ years, customers, contracts, filters, onChange, onRefresh }) {
+export function FilterBar({ years, customers, contracts, filters, onChange, onRefresh, onExport, onReport }) {
   const projList = contracts.filter((c) => filters.customerId === "all" || c.customerId === filters.customerId);
+  const btn = "flex h-9 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-sm font-medium text-sub shadow-sm hover:border-brand-400 hover:text-brand-500";
   return (
     <div className="flex flex-wrap items-center gap-2">
       <FSel label="Năm" value={filters.year} onChange={(e) => onChange({ ...filters, year: e.target.value })}>
@@ -93,8 +96,14 @@ export function FilterBar({ years, customers, contracts, filters, onChange, onRe
         <option value="progress">Đang thực hiện</option>
         <option value="done">Đã thu đủ</option>
       </FSel>
-      <button onClick={onRefresh} className="ml-auto flex h-9 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-sm font-medium text-sub shadow-sm hover:border-brand-400 hover:text-brand-500">
+      <button onClick={onRefresh} className={`ml-auto ${btn}`}>
         <RotateCw size={14} /> Làm mới
+      </button>
+      <button onClick={onExport} className={btn}>
+        <FileSpreadsheet size={14} className="text-brand-500" /> Xuất Excel
+      </button>
+      <button onClick={onReport} className={btn}>
+        <FileBarChart2 size={14} /> Báo cáo
       </button>
     </div>
   );

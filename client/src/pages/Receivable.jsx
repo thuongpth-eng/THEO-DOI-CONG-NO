@@ -66,28 +66,31 @@ export default function Receivable() {
       {/* Thanh tab + nút xuất/in (hiện trên mọi tab) */}
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-line">
         <Tabs items={TABS} value={tab} onChange={setTab} />
-        <div className="flex flex-wrap gap-2 pb-2">
-          <ExportBtn
-            icon={FileSpreadsheet}
-            label={busy === "excel" ? "Đang xuất…" : "Xuất Excel"}
-            onClick={() => run("excel")}
-            busy={busy === "excel"}
-            primary
-          />
-          <ExportBtn
-            icon={Printer}
-            label="In báo cáo"
-            onClick={() => run("print")}
-            busy={busy === "print"}
-          />
-          <ExportBtn icon={FileText} label="CSV" onClick={() => run("csv")} busy={busy === "csv"} />
-          <ExportBtn
-            icon={Download}
-            label="Sao lưu JSON"
-            onClick={() => run("json")}
-            busy={busy === "json"}
-          />
-        </div>
+        {/* Tab Dashboard đã có nút Xuất Excel/Báo cáo trong thanh lọc → ẩn toolbar này */}
+        {tab !== "dash" && (
+          <div className="flex flex-wrap gap-2 pb-2">
+            <ExportBtn
+              icon={FileSpreadsheet}
+              label={busy === "excel" ? "Đang xuất…" : "Xuất Excel"}
+              onClick={() => run("excel")}
+              busy={busy === "excel"}
+              primary
+            />
+            <ExportBtn
+              icon={Printer}
+              label="In báo cáo"
+              onClick={() => run("print")}
+              busy={busy === "print"}
+            />
+            <ExportBtn icon={FileText} label="CSV" onClick={() => run("csv")} busy={busy === "csv"} />
+            <ExportBtn
+              icon={Download}
+              label="Sao lưu JSON"
+              onClick={() => run("json")}
+              busy={busy === "json"}
+            />
+          </div>
+        )}
       </div>
 
       {/* Nội dung theo tab */}

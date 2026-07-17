@@ -3,6 +3,7 @@ import api, { backendName } from "../lib/data";
 import { buildKpis, buildCustomerProgress, buildDueSoon, buildOverdue } from "../lib/dashboard";
 import { outstanding, daysLate, daysToDue, arisen } from "../lib/models";
 import { yearOf } from "../lib/contractsUtil";
+import { exportExcel, printReport } from "../lib/exporter";
 import {
   FilterBar,
   KpiCards,
@@ -153,9 +154,11 @@ export default function Overview({ embedded = false }) {
       )}
 
       <div className="space-y-4">
-        <div>
-          <h1 className="text-xl font-bold text-ink xl:text-2xl">Dashboard công nợ chủ đầu tư</h1>
-          <p className="text-xs text-faint">Cập nhật lúc: {nowStr(loadedAt)}</p>
+        <div className="flex items-center gap-2">
+          <div>
+            <h1 className="text-xl font-bold uppercase text-ink xl:text-2xl">Dashboard công nợ chủ đầu tư</h1>
+            <p className="text-xs text-faint">Cập nhật lúc: {nowStr(loadedAt)}</p>
+          </div>
         </div>
 
         <FilterBar
@@ -165,6 +168,8 @@ export default function Overview({ embedded = false }) {
           filters={filters}
           onChange={setFilters}
           onRefresh={load}
+          onExport={() => exportExcel(fContracts, fInstallments, fCustomers)}
+          onReport={() => printReport(fContracts, fInstallments)}
         />
 
         <KpiCards kpis={kpis} installments={fInstallments} />

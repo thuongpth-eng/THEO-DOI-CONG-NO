@@ -1,16 +1,13 @@
 import { useState, useEffect } from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { Menu, Bell, Sun, Moon } from "lucide-react";
-import { Rocket } from "lucide-react";
 import Logo from "./components/Logo";
 import Sidebar from "./components/Sidebar";
-import Overview from "./pages/Overview";
-import Detail from "./pages/Detail";
+import Receivable from "./pages/Receivable";
 import Contracts from "./pages/Contracts";
 import ContractDetail from "./pages/ContractDetail";
 import Users from "./pages/Users";
 import Links from "./pages/Links";
-import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import { useAuth } from "./context/AuthContext";
 import { useTheme } from "./context/ThemeContext";
@@ -21,30 +18,21 @@ function todayVN() {
   return `${days[d.getDay()]}, ${d.getDate()} tháng ${d.getMonth() + 1}, ${d.getFullYear()}`;
 }
 
-function ComingSoon({ title }) {
+function Placeholder({ title }) {
   return (
-    <div className="flex h-72 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-line bg-card/50 text-center">
-      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-        <Rocket size={26} />
-      </span>
-      <div className="text-lg font-bold text-ink">{title}</div>
-      <div className="text-sm text-faint">Tính năng đang được phát triển · Sắp ra mắt</div>
+    <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-line bg-card/50 text-faint">
+      Trang “{title}” sẽ được xây ở giai đoạn tiếp theo.
     </div>
   );
 }
 
 const TITLES = [
-  { re: /^\/$/, title: "Tổng quan" },
-  { re: /^\/tracking/, title: "Công nợ chi tiết" },
+  { re: /^\/$/, title: "Theo dõi công nợ" },
   { re: /^\/contracts\/.+/, title: "Chi tiết công trình" },
-  { re: /^\/contracts$/, title: "Hồ sơ thanh toán" },
-  { re: /^\/cashflow/, title: "Dòng tiền" },
-  { re: /^\/reports/, title: "Báo cáo" },
-  { re: /^\/alerts/, title: "Cảnh báo" },
-  { re: /^\/settings/, title: "Thiết lập" },
+  { re: /^\/contracts$/, title: "Kho lưu trữ hợp đồng thi công" },
   { re: /^\/links/, title: "Mã liên kết" },
   { re: /^\/history/, title: "Lịch sử thay đổi" },
-  { re: /^\/users/, title: "Người dùng & phân quyền" },
+  { re: /^\/users/, title: "Người dùng" },
 ];
 
 function AdminOnly({ children }) {
@@ -74,8 +62,8 @@ export default function App() {
   if (!user) return <Login />;
 
   const isHome = pathname === "/";
-  // Các trang tự vẽ tiêu đề riêng trong nội dung
-  const ownHeader = isHome || pathname === "/tracking" || pathname === "/contracts";
+  // Trang chủ (có thanh tab riêng) và Kho lưu trữ tự vẽ tiêu đề riêng trong nội dung
+  const ownHeader = isHome || pathname === "/contracts";
   const title = TITLES.find((t) => t.re.test(pathname))?.title || "HPC Receivable";
 
   return (
@@ -148,16 +136,12 @@ export default function App() {
             </div>
           )}
           <Routes>
-            <Route path="/" element={<Overview />} />
-            <Route path="/tracking" element={<Detail />} />
+            <Route path="/" element={<Receivable />} />
+            <Route path="/tracking" element={<Navigate to="/" replace />} />
             <Route path="/contracts" element={<Contracts />} />
             <Route path="/contracts/:id" element={<ContractDetail />} />
             <Route path="/links" element={<Links />} />
-            <Route path="/history" element={<ComingSoon title="Lịch sử thay đổi" />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/cashflow" element={<ComingSoon title="Dòng tiền" />} />
-            <Route path="/reports" element={<ComingSoon title="Báo cáo" />} />
-            <Route path="/alerts" element={<ComingSoon title="Cảnh báo" />} />
+            <Route path="/history" element={<Placeholder title="Lịch sử thay đổi" />} />
             <Route
               path="/users"
               element={

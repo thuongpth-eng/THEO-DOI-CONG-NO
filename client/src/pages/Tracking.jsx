@@ -108,6 +108,25 @@ const emptyForm = {
 
 const STATUS_OPTS = STATUS_NAMES.map((n, i) => ({ value: i, label: n }));
 
+// Cộng n ngày vào ngày ISO (yyyy-mm-dd) → trả yyyy-mm-dd (rỗng nếu không hợp lệ)
+function addDays(iso, n) {
+  if (!iso) return "";
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return "";
+  d.setDate(d.getDate() + (Number(n) || 0));
+  const p = (x) => String(x).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// Tiêu đề nhóm trong form chi tiết đợt
+function SubHead({ children }) {
+  return (
+    <div className="mt-1 border-b border-line pb-1 text-[11px] font-bold uppercase tracking-wide text-brand-500 sm:col-span-2">
+      {children}
+    </div>
+  );
+}
+
 export default function Tracking({ summary = false, embedded = false }) {
   const { canEdit } = useAuth();
   const [contracts, setContracts] = useState([]);

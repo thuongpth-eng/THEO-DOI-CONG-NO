@@ -1,25 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api, { backendName } from "../lib/data";
-import {
-  buildKpis,
-  buildCustomerProgress,
-  buildDueSoon,
-  buildOverdue,
-} from "../lib/dashboard";
-import { outstanding, daysLate } from "../lib/models";
+import { buildKpis, buildCustomerProgress, buildDueSoon, buildOverdue } from "../lib/dashboard";
+import { outstanding, daysLate, daysToDue, arisen } from "../lib/models";
 import { yearOf } from "../lib/contractsUtil";
-import DashboardFilters from "../components/dashboard/DashboardFilters";
 import {
+  FilterBar,
   KpiCards,
   DebtByCustomer,
   DebtStructure,
-  MonthlyCashflow,
+  CashflowLine,
   AlertsPanel,
-  DetailTable,
+  PriorityProjects,
   AgingBars,
-  DocMatrix,
-  DocTimeline,
   TopDebtors,
+  DocFlow,
 } from "../components/dashboard/blocks";
 import LoadingState from "../components/shared/LoadingState";
 
@@ -31,6 +25,11 @@ function contractStatus(rows) {
   return "progress";
 }
 
+function nowStr(d) {
+  const p = (x) => String(x).padStart(2, "0");
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 const emptyFilters = { year: "all", customerId: "all", contractId: "all", status: "all" };
 
 export default function Overview({ embedded = false }) {
@@ -38,21 +37,25 @@ export default function Overview({ embedded = false }) {
   const [installments, setInstallments] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadedAt, setLoadedAt] = useState(() => new Date());
   const [filters, setFilters] = useState(emptyFilters);
 
-  useEffect(() => {
-    (async () => {
-      const [ct, inst, cus] = await Promise.all([
-        api.listContracts(),
-        api.listInstallments(),
-        api.listCustomers(),
-      ]);
-      setContracts(ct);
-      setInstallments(inst);
-      setCustomers(cus);
-      setLoading(false);
-    })();
+  const load = useCallback(async () => {
+    const [ct, inst, cus] = await Promise.all([
+      api.listContracts(),
+      api.listInstallments(),
+      api.listCustomers(),
+    ]);
+    setContracts(ct);
+    setInstallments(inst);
+    setCustomers(cus);
+    setLoadedAt(new Date());
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const rowsByContract = useMemo(() => {
     const m = new Map();
@@ -85,41 +88,61 @@ export default function Overview({ embedded = false }) {
     return { fContracts: fc, fInstallments: fi, fCustomers: fcus };
   }, [contracts, installments, customers, filters, rowsByContract]);
 
-  // Dữ liệu công trình đã làm giàu (cho bảng chi tiết / ma trận / timeline)
-  const enriched = useMemo(() => {
-    return fContracts
-      .map((c) => {
-        const rows = rowsByContract.get(c.id) || [];
-        const value = c.totalAfterTax || rows.reduce((s, r) => s + (r.value || 0), 0);
-        const paid = rows.reduce((s, r) => s + (r.paid || 0), 0);
-        const os = rows.reduce((s, r) => s + outstanding(r), 0);
-        const maxLate = rows.reduce((m, r) => Math.max(m, daysLate(r)), 0);
-        const s = rows.reduce((m, r) => Math.max(m, r.status || 0), 0);
-        return {
-          id: c.id,
-          name: c.name,
-          customerName: c.customerName,
-          rows,
-          value,
-          paid,
-          os,
-          maxLate,
-          st: contractStatus(rows),
-          s,
-          paidFull: os <= 0.5 && paid > 0,
-        };
-      })
-      .sort((a, b) => b.os - a.os);
-  }, [fContracts, rowsByContract]);
-
   if (loading) return <LoadingState />;
 
   const kpis = buildKpis(fContracts, fCustomers, fInstallments);
   const custData = buildCustomerProgress(fCustomers, fInstallments);
   const dueSoon = buildDueSoon(fInstallments, 30);
   const overdueRows = buildOverdue(fInstallments);
-  const matrixRows = enriched.slice(0, 6).map((c) => ({ id: c.id, name: c.name, s: c.s, paid: c.paidFull }));
-  const timelineItems = enriched.filter((c) => c.rows.length > 0).slice(0, 6);
+
+  // Dự án cần ưu tiên xử lý
+  const priority = fContracts
+    .map((c) => {
+      const rows = rowsByContract.get(c.id) || [];
+      const value = c.totalAfterTax || rows.reduce((s, r) => s + (r.value || 0), 0);
+      const paid = rows.reduce((s, r) => s + (r.paid || 0), 0);
+      const os = rows.reduce((s, r) => s + outstanding(r), 0);
+      const maxLate = rows.reduce((m, r) => Math.max(m, daysLate(r)), 0);
+      const dueList = rows
+        .filter((r) => outstanding(r) > 0 && arisen(r))
+        .map((r) => daysToDue(r))
+        .filter((d) => d !== null && d >= 0);
+      const nearDue = dueList.length ? Math.min(...dueList) : null;
+      const cur = rows.find((r) => outstanding(r) > 0) || rows[rows.length - 1];
+      const st = contractStatus(rows);
+      let dueLabel = null;
+      if (maxLate > 0) dueLabel = `Quá hạn ${maxLate} ngày`;
+      else if (nearDue !== null && nearDue <= 30) dueLabel = `Đến hạn ${nearDue} ngày`;
+      return {
+        id: c.id,
+        name: c.name,
+        value,
+        paid,
+        os,
+        maxLate,
+        nearDue,
+        st,
+        dueLabel,
+        pctPaid: value > 0 ? Math.round((paid / value) * 100) : 0,
+        hs: cur?.dot || "",
+        urgency: maxLate > 0 ? 3 : nearDue !== null && nearDue <= 30 ? 2 : 1,
+      };
+    })
+    .filter((p) => p.os > 0)
+    .sort((a, b) => b.urgency - a.urgency || b.maxLate - a.maxLate || b.os - a.os)
+    .slice(0, 6);
+
+  // Luồng trạng thái hồ sơ (đếm theo status)
+  const flow = { lap: 0, trinh: 0, duyet: 0, cho: 0, da: 0 };
+  for (const r of fInstallments) {
+    const s = Number(r.status) || 0;
+    const paidFull = outstanding(r) <= 0.5 && (r.paid || 0) > 0;
+    if (paidFull || s >= 6) flow.da++;
+    else if (s >= 4) flow.cho++;
+    else if (s === 3) flow.duyet++;
+    else if (s === 2) flow.trinh++;
+    else flow.lap++;
+  }
 
   return (
     <div className={embedded ? "" : "pt-4 xl:pt-6"}>
@@ -129,37 +152,37 @@ export default function Overview({ embedded = false }) {
         </div>
       )}
 
-      <div className="flex flex-col gap-4 xl:flex-row">
-        <DashboardFilters
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-xl font-bold text-ink xl:text-2xl">Dashboard công nợ chủ đầu tư</h1>
+          <p className="text-xs text-faint">Cập nhật lúc: {nowStr(loadedAt)}</p>
+        </div>
+
+        <FilterBar
           years={years}
           customers={customers}
           contracts={contracts}
           filters={filters}
           onChange={setFilters}
-          kpis={kpis}
+          onRefresh={load}
         />
 
-        <div className="min-w-0 flex-1 space-y-4">
-          <KpiCards kpis={kpis} installments={fInstallments} />
+        <KpiCards kpis={kpis} installments={fInstallments} />
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
-            <DebtByCustomer customerData={custData} />
-            <DebtStructure kpis={kpis} />
-            <MonthlyCashflow installments={fInstallments} />
-            <AlertsPanel overdue={overdueRows} dueSoon={dueSoon} />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <DetailTable rows={enriched} className="xl:col-span-2" />
-            <AgingBars installments={fInstallments} />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <DocMatrix rows={matrixRows} />
-            <DocTimeline items={timelineItems} />
-            <TopDebtors customerData={custData} />
-          </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
+          <DebtByCustomer customerData={custData} />
+          <DebtStructure kpis={kpis} />
+          <CashflowLine installments={fInstallments} />
+          <AlertsPanel overdue={overdueRows} dueSoon={dueSoon} />
         </div>
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+          <PriorityProjects projects={priority} className="xl:col-span-2" />
+          <AgingBars installments={fInstallments} />
+          <TopDebtors customerData={custData} />
+        </div>
+
+        <DocFlow counts={flow} />
       </div>
     </div>
   );

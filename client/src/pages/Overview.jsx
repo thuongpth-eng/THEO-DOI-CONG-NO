@@ -4,6 +4,7 @@ import { buildKpis, buildCustomerProgress, buildDueSoon, buildOverdue } from "..
 import { outstanding, daysLate, daysToDue, arisen } from "../lib/models";
 import { yearOf } from "../lib/contractsUtil";
 import { exportExcel, printReport } from "../lib/exporter";
+import { useAuth } from "../context/AuthContext";
 import {
   FilterBar,
   KpiCards,
@@ -34,6 +35,7 @@ function nowStr(d) {
 const emptyFilters = { year: "all", customerId: "all", contractId: "all", status: "all" };
 
 export default function Overview({ embedded = false }) {
+  const { user } = useAuth();
   const [contracts, setContracts] = useState([]);
   const [installments, setInstallments] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -168,7 +170,7 @@ export default function Overview({ embedded = false }) {
           filters={filters}
           onChange={setFilters}
           onRefresh={load}
-          onExport={() => exportExcel(fContracts, fInstallments, fCustomers)}
+          onExport={() => exportExcel(fContracts, fInstallments, fCustomers, { exportedBy: user?.name })}
           onReport={() => printReport(fContracts, fInstallments)}
         />
 

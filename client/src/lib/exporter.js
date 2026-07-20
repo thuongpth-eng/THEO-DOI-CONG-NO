@@ -119,152 +119,282 @@ function fillTable(ws, startRow, columns, rows, totals) {
   return r;
 }
 
-export async function exportExcel(contracts, installments, customers = []) {
+// Tô 1 ô nhãn/giá trị
+function put(ws, addr, value, style = {}) {
+  const c = ws.getCell(addr);
+  c.value = value;
+  if (style.font) c.font = style.font;
+  if (style.fill) c.fill = style.fill;
+  if (style.align) c.alignment = style.align;
+  if (style.numFmt) c.numFmt = style.numFmt;
+  if (style.border) c.border = style.border;
+  return c;
+}
+const solid = (argb) => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
+const sanitizeSheet = (s, used) => {
+  let n = (s || "Sheet").replace(/[\\/?*[\]:]/g, "-").slice(0, 28).trim() || "Sheet";
+  let base = n, k = 2;
+  while (used.has(n.toLowerCase())) n = `${base.slice(0, 25)} ${k++}`;
+  used.add(n.toLowerCase());
+  return n;
+};
+
+export async function exportExcel(contracts, installments, customers = [], opts = {}) {
   const ExcelJS = (await import("exceljs")).default;
   const wb = new ExcelJS.Workbook();
   wb.creator = "HPC Receivable";
   wb.created = new Date();
+  const exportedBy = opts.exportedBy || "";
 
-  const rowsOf = (cid) => installments.filter((r) => r.contractId === cid);
-  const g = summarize(installments);
+  const rowsOf = (cid) =>
+    installments.filter((r) => r.contractId === cid).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  const invoicedOf = (r) => (r.ngayXuatHD || (r.status || 0) >= 4 ? r.value || 0 : 0);
 
-  /* ---- Sheet 1: Tổng hợp theo công trình ---- */
-  const ws1 = wb.addWorksheet("Tổng hợp", {
-    views: [{ showGridLines: false }],
-    pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+  // Số liệu từng công trình
+  const perC = contracts.map((c, i) => {
+    const rs = rowsOf(c.id);
+    const value = c.totalAfterTax || rs.reduce((s, r) => s + (r.value || 0), 0);
+    const invoiced = rs.reduce((s, r) => s + invoicedOf(r), 0);
+    const paid = rs.reduce((s, r) => s + (r.paid || 0), 0);
+    const os = value - paid;
+    const overdue = rs.filter((r) => daysLate(r) > 0).reduce((s, r) => s + outstanding(r), 0);
+    const maxLate = rs.reduce((m, r) => Math.max(m, daysLate(r)), 0);
+    const st = maxLate > 0 ? "Quá hạn" : os <= 0.5 && paid > 0 ? "Hoàn thành" : "Đang thực hiện";
+    return { c, i, rs, value, invoiced, paid, os, overdue, maxLate, st, pct: value > 0 ? paid / value : 0 };
   });
-  const cols1 = [
-    { header: "STT", key: "stt", width: 5, center: true },
-    { header: "Công trình", key: "name", width: 26 },
-    { header: "Chủ đầu tư", key: "cus", width: 34 },
-    { header: "Số hợp đồng", key: "code", width: 20 },
-    { header: "Giá trị HĐ (VND)", key: "value", width: 18, money: true },
-    { header: "Đã thu (VND)", key: "paid", width: 18, money: true },
-    { header: "Còn phải thu (VND)", key: "os", width: 18, money: true },
-    { header: "Quá hạn (VND)", key: "overdue", width: 16, money: true },
-    { header: "% đã thu", key: "pct", width: 9, center: true },
-    { header: "Địa điểm", key: "loc", width: 34 },
-  ];
-  const data1 = contracts.map((c, i) => {
-    const s = summarize(rowsOf(c.id));
-    const base = c.totalAfterTax || s.totalValue;
-    return {
-      stt: i + 1,
-      name: c.name,
-      cus: c.customerName,
-      code: c.code || "",
-      value: c.totalAfterTax || s.totalValue,
-      paid: s.totalPaid,
-      os: s.outstanding,
-      overdue: s.overdue,
-      pct: base > 0 ? Math.round((s.totalPaid / base) * 100) + "%" : "0%",
-      loc: c.loc || "",
-    };
-  });
-  const totalValue1 = contracts.reduce(
-    (a, c) => a + (c.totalAfterTax || summarize(rowsOf(c.id)).totalValue),
-    0
+  const T = perC.reduce(
+    (a, p) => ({
+      value: a.value + p.value,
+      invoiced: a.invoiced + p.invoiced,
+      paid: a.paid + p.paid,
+      os: a.os + p.os,
+      overdue: a.overdue + p.overdue,
+    }),
+    { value: 0, invoiced: 0, paid: 0, os: 0, overdue: 0 }
   );
-  styleTitle(ws1, cols1.length, "BÁO CÁO CÔNG NỢ PHẢI THU — TỔNG HỢP", `${contracts.length} công trình · ${customers.length || "—"} chủ đầu tư`);
-  fillTable(ws1, 5, cols1, data1, {
-    value: totalValue1,
-    paid: g.totalPaid,
-    os: g.outstanding,
-    overdue: g.overdue,
-  });
+  const pctThu = T.value > 0 ? T.paid / T.value : 0;
 
-  /* ---- Sheet 2: Chi tiết đợt thanh toán ---- */
-  const ws2 = wb.addWorksheet("Chi tiết đợt", {
+  /* ============ SHEET 1 — TỔNG QUAN CÔNG NỢ ============ */
+  const ov = wb.addWorksheet("TỔNG QUAN", {
     views: [{ showGridLines: false }],
+    pageSetup: { orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } },
+  });
+  ov.columns = [{ width: 5 }, { width: 30 }, { width: 24 }, { width: 22 }, { width: 22 }];
+  try {
+    const res = await fetch("/logo.png");
+    if (res.ok) {
+      const buf = await res.arrayBuffer();
+      const id = wb.addImage({ buffer: buf, extension: "png" });
+      ov.addImage(id, { tl: { col: 0.15, row: 0.15 }, ext: { width: 108, height: 90 } });
+    }
+  } catch { /* bỏ qua logo nếu lỗi */ }
+  ov.getRow(1).height = 26;
+  ov.getRow(2).height = 22;
+  ov.getRow(3).height = 18;
+  ov.mergeCells("B1:E1");
+  put(ov, "B1", "HP CONS — KIỂM SOÁT HỢP ĐỒNG CHỦ ĐẦU TƯ", { font: { bold: true, size: 15, color: { argb: NAVY } }, align: { vertical: "middle" } });
+  ov.mergeCells("B2:E2");
+  put(ov, "B2", "BÁO CÁO TỔNG QUAN CÔNG NỢ PHẢI THU", { font: { bold: true, size: 13, color: { argb: GREEN } } });
+  ov.mergeCells("B3:E3");
+  put(ov, "B3", `Ngày xuất: ${todayVN()}${exportedBy ? " · Người xuất: " + exportedBy : ""}`, { font: { italic: true, size: 10, color: { argb: "FF888888" } } });
+
+  // KPI
+  const kpis = [
+    { l: "Tổng giá trị hợp đồng", v: T.value, c: "FF0969A7" },
+    { l: "Tổng đã xuất hóa đơn", v: T.invoiced, c: NAVY },
+    { l: "Tổng đã thu", v: T.paid, c: GREEN },
+    { l: "Tổng còn phải thu", v: T.os, c: "FFB26A00" },
+    { l: "Tổng công nợ quá hạn", v: T.overdue, c: "FFC62828" },
+  ];
+  let r = 6;
+  put(ov, `B${r}`, "CHỈ TIÊU", { font: { bold: true, color: { argb: "FFFFFFFF" } }, fill: solid(GREEN), align: { horizontal: "left" }, border: BORDER });
+  ov.mergeCells(`C${r}:E${r}`);
+  put(ov, `C${r}`, "GIÁ TRỊ (VNĐ)", { font: { bold: true, color: { argb: "FFFFFFFF" } }, fill: solid(GREEN), align: { horizontal: "right" }, border: BORDER });
+  ov.getCell(`D${r}`).border = BORDER; ov.getCell(`E${r}`).border = BORDER;
+  r++;
+  for (const k of kpis) {
+    put(ov, `B${r}`, k.l, { font: { size: 11 }, border: BORDER });
+    ov.mergeCells(`C${r}:E${r}`);
+    put(ov, `C${r}`, k.v, { font: { bold: true, size: 12, color: { argb: k.c } }, numFmt: MONEY, align: { horizontal: "right" }, border: BORDER });
+    ov.getCell(`D${r}`).border = BORDER; ov.getCell(`E${r}`).border = BORDER;
+    r++;
+  }
+  put(ov, `B${r}`, "Tổng số công trình", { font: { size: 11 }, border: BORDER });
+  ov.mergeCells(`C${r}:E${r}`);
+  put(ov, `C${r}`, contracts.length, { font: { bold: true, size: 12, color: { argb: NAVY } }, align: { horizontal: "right" }, border: BORDER });
+  ov.getCell(`D${r}`).border = BORDER; ov.getCell(`E${r}`).border = BORDER; r++;
+  put(ov, `B${r}`, "Tỷ lệ thu tiền", { font: { size: 11 }, border: BORDER });
+  ov.mergeCells(`C${r}:E${r}`);
+  put(ov, `C${r}`, pctThu, { font: { bold: true, size: 12, color: { argb: GREEN } }, numFmt: '0.0%', align: { horizontal: "right" }, border: BORDER });
+  ov.getCell(`D${r}`).border = BORDER; ov.getCell(`E${r}`).border = BORDER; r += 2;
+
+  // Cơ cấu công nợ (data bar)
+  put(ov, `B${r}`, "CƠ CẤU CÔNG NỢ", { font: { bold: true, color: { argb: "FFFFFFFF" } }, fill: solid(NAVY), border: BORDER });
+  ov.mergeCells(`C${r}:E${r}`);
+  put(ov, `C${r}`, "GIÁ TRỊ (VNĐ)", { font: { bold: true, color: { argb: "FFFFFFFF" } }, fill: solid(NAVY), align: { horizontal: "right" }, border: BORDER });
+  ov.getCell(`D${r}`).border = BORDER; ov.getCell(`E${r}`).border = BORDER; r++;
+  const barStart = r;
+  const coCau = [
+    { l: "Đã thanh toán", v: T.paid },
+    { l: "Chờ thanh toán (chưa quá hạn)", v: Math.max(0, T.os - T.overdue) },
+    { l: "Quá hạn", v: T.overdue },
+  ];
+  for (const k of coCau) {
+    put(ov, `B${r}`, k.l, { font: { size: 11 }, border: BORDER });
+    ov.mergeCells(`C${r}:E${r}`);
+    put(ov, `C${r}`, k.v, { font: { size: 11 }, numFmt: MONEY, align: { horizontal: "right" }, border: BORDER });
+    ov.getCell(`D${r}`).border = BORDER; ov.getCell(`E${r}`).border = BORDER; r++;
+  }
+  ov.addConditionalFormatting({
+    ref: `C${barStart}:C${r - 1}`,
+    rules: [{ type: "dataBar", cfvo: [{ type: "min" }, { type: "max" }], color: { argb: GREEN } }],
+  });
+  put(ov, `B${r + 1}`, "Báo cáo tự động từ hệ thống HPC Receivable · HP CONS", { font: { italic: true, size: 9, color: { argb: "FFAAAAAA" } } });
+
+  /* ============ SHEET 2 — DANH SÁCH CÔNG TRÌNH ============ */
+  const ls = wb.addWorksheet("DANH SÁCH CÔNG TRÌNH", {
+    views: [{ showGridLines: false, state: "frozen", ySplit: 5 }],
     pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
   });
-  const cols2 = [
-    { header: "STT", key: "stt", width: 5, center: true },
-    { header: "Công trình", key: "name", width: 22 },
-    { header: "Đợt", key: "dot", width: 8, center: true },
-    { header: "Nội dung cần hoàn thành", key: "noidung", width: 30 },
-    { header: "Hồ sơ yêu cầu", key: "hoso", width: 22 },
-    { header: "Trạng thái hồ sơ", key: "st", width: 20 },
-    { header: "Giá trị đợt (VND)", key: "value", width: 16, money: true },
-    { header: "Đã thu (VND)", key: "paid", width: 16, money: true },
-    { header: "Còn lại (VND)", key: "os", width: 16, money: true },
-    { header: "Ngày gửi HS", key: "guiHS", width: 13, center: true },
-    { header: "Ngày xuất HĐ", key: "xuatHD", width: 13, center: true },
-    { header: "Ngày đến hạn", key: "denHan", width: 13, center: true },
-    { header: "Ngày thực thu", key: " tt", width: 13, center: true },
-    { header: "Số ngày trễ", key: "late", width: 10, center: true },
-    { header: "Ghi chú", key: "ghichu", width: 30 },
+  const cols = [
+    { h: "STT", w: 5, c: true },
+    { h: "Mã dự án", w: 14 },
+    { h: "Tên công trình", w: 26 },
+    { h: "Chủ đầu tư", w: 30 },
+    { h: "Giá trị HĐ", w: 17, m: true },
+    { h: "Đã xuất HĐ", w: 17, m: true },
+    { h: "Đã thu", w: 17, m: true },
+    { h: "Còn phải thu", w: 17, m: true },
+    { h: "% thu", w: 9, p: true },
+    { h: "Trạng thái", w: 16 },
   ];
-  const data2 = installments.map((r, i) => ({
-    stt: i + 1,
-    name: r.contractName,
-    dot: r.dot,
-    noidung: r.noidung || "",
-    hoso: r.hoso || "",
-    st: statusName(r.status),
-    value: r.value || 0,
-    paid: r.paid || 0,
-    os: outstanding(r),
-    guiHS: fmtDate(r.ngayGuiHS) === "—" ? "" : fmtDate(r.ngayGuiHS),
-    xuatHD: fmtDate(r.ngayXuatHD) === "—" ? "" : fmtDate(r.ngayXuatHD),
-    denHan: fmtDate(r.ngayDenHan) === "—" ? "" : fmtDate(r.ngayDenHan),
-    " tt": fmtDate(r.ngayTT) === "—" ? "" : fmtDate(r.ngayTT),
-    late: daysLate(r) || "",
-    ghichu: r.ghichu || "",
-  }));
-  styleTitle(ws2, cols2.length, "BÁO CÁO CÔNG NỢ PHẢI THU — CHI TIẾT ĐỢT", `${installments.length} đợt thanh toán`);
-  fillTable(ws2, 5, cols2, data2, {
-    value: installments.reduce((a, r) => a + (r.value || 0), 0),
-    paid: g.totalPaid,
-    os: installments.reduce((a, r) => a + outstanding(r), 0),
+  ls.columns = cols.map((c) => ({ width: c.w }));
+  styleTitle(ls, cols.length, "DANH SÁCH CÔNG NỢ TẤT CẢ CÔNG TRÌNH", `${contracts.length} công trình · ${customers.length || "—"} chủ đầu tư`);
+  const HR = 5;
+  headerRow(ls, HR, cols.length);
+  ls.getRow(HR).values = cols.map((c) => c.h);
+  let rr = HR + 1;
+  for (const p of perC) {
+    const row = ls.getRow(rr);
+    const vals = [p.i + 1, p.c.maDuAn || "", p.c.name, p.c.customerName, p.value, p.invoiced, p.paid, p.os, p.pct, p.st];
+    cols.forEach((col, ci) => {
+      const cell = row.getCell(ci + 1);
+      cell.value = vals[ci];
+      cell.border = BORDER;
+      cell.font = { size: 10 };
+      if (col.m) { cell.numFmt = MONEY; cell.alignment = { horizontal: "right" }; }
+      else if (col.p) { cell.numFmt = '0%'; cell.alignment = { horizontal: "center" }; }
+      else if (col.c) cell.alignment = { horizontal: "center" };
+      else cell.alignment = { horizontal: "left", wrapText: true, vertical: "top" };
+    });
+    // Tô màu trạng thái
+    const stCell = row.getCell(cols.length);
+    stCell.font = { size: 10, bold: true, color: { argb: p.st === "Quá hạn" ? "FFC62828" : p.st === "Hoàn thành" ? "FF2E7D32" : "FF0969A7" } };
+    rr++;
+  }
+  // Dòng tổng
+  const totRow = ls.getRow(rr);
+  cols.forEach((col, ci) => {
+    const cell = totRow.getCell(ci + 1);
+    cell.border = BORDER;
+    cell.fill = solid(GREENSOFT);
+    cell.font = { bold: true, size: 10 };
+    if (ci === 0) cell.value = "TỔNG";
+    const map = { 4: T.value, 5: T.invoiced, 6: T.paid, 7: T.os };
+    if (map[ci] != null) { cell.value = map[ci]; cell.numFmt = MONEY; cell.alignment = { horizontal: "right" }; }
+    if (ci === 8) { cell.value = pctThu; cell.numFmt = '0%'; cell.alignment = { horizontal: "center" }; }
+  });
+  ls.autoFilter = { from: { row: HR, column: 1 }, to: { row: HR, column: cols.length } };
+  // Data bar cột % + tô đỏ dòng quá hạn (cột Còn phải thu)
+  ls.addConditionalFormatting({
+    ref: `I${HR + 1}:I${rr - 1}`,
+    rules: [{ type: "colorScale", cfvo: [{ type: "num", value: 0 }, { type: "num", value: 0.5 }, { type: "num", value: 1 }], color: [{ argb: "FFF8CBAD" }, { argb: "FFFFF2CC" }, { argb: "FFC6EFCE" }] }],
+  });
+  ls.addConditionalFormatting({
+    ref: `H${HR + 1}:H${rr - 1}`,
+    rules: [{ type: "dataBar", cfvo: [{ type: "min" }, { type: "max" }], color: { argb: "FFFFA726" } }],
   });
 
-  /* ---- Sheet 3: Theo khách hàng ---- */
-  const byCus = new Map();
-  for (const c of contracts) {
-    const key = c.customerName || "Khác";
-    if (!byCus.has(key)) byCus.set(key, { name: key, value: 0, paid: 0, os: 0, overdue: 0, n: 0 });
-    const s = summarize(rowsOf(c.id));
-    const o = byCus.get(key);
-    o.value += c.totalAfterTax || s.totalValue;
-    o.paid += s.totalPaid;
-    o.os += s.outstanding;
-    o.overdue += s.overdue;
-    o.n += 1;
+  /* ============ SHEET 3+ — MỖI CÔNG TRÌNH 1 SHEET ============ */
+  const used = new Set(["tổng quan", "danh sách công trình"]);
+  for (const p of perC.slice(0, 40)) {
+    const c = p.c;
+    const ws = wb.addWorksheet(sanitizeSheet(c.name, used), {
+      views: [{ showGridLines: false }],
+      pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } },
+    });
+    ws.columns = [{ width: 5 }, { width: 30 }, { width: 20 }, { width: 20 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 30 }];
+    const NC = 9;
+    ws.mergeCells(1, 1, 1, NC);
+    put(ws, "A1", `CÔNG TRÌNH: ${c.name}`, { font: { bold: true, size: 14, color: { argb: NAVY } } });
+    ws.mergeCells(2, 1, 2, NC);
+    put(ws, "A2", `Chủ đầu tư: ${c.customerName || "—"}  ·  Mã DA: ${c.maDuAn || "—"}  ·  Số HĐ: ${c.code || "—"}`, { font: { size: 10, color: { argb: "FF666666" } } });
+    // Khối thông tin
+    const info = [
+      ["Giá trị hợp đồng", p.value, true],
+      ["Đã xuất hóa đơn", p.invoiced, true],
+      ["Đã thu", p.paid, true],
+      ["Còn phải thu", p.os, true],
+      ["Quá hạn", p.overdue, true],
+      ["Tỷ lệ thu", p.pct, false, "pct"],
+      ["Tình trạng", p.st, false],
+      ["Người phụ trách", p.rs.map((x) => x.nguoiPhuTrach).filter(Boolean).join(", ") || "—", false],
+      ["Địa điểm", c.loc || "—", false],
+      ["Hạng mục", c.work || "—", false],
+      ["Cập nhật lần cuối", c.updatedAt ? new Date(c.updatedAt).toLocaleString("vi-VN") : "—", false],
+    ];
+    let ir = 4;
+    for (const [label, val, money, kind] of info) {
+      put(ws, `A${ir}`, label, { font: { bold: true, size: 10 }, border: BORDER });
+      ws.mergeCells(`B${ir}:D${ir}`);
+      const cell = put(ws, `B${ir}`, val, { font: { size: 10 }, border: BORDER });
+      if (money) { cell.numFmt = MONEY; cell.alignment = { horizontal: "right" }; }
+      if (kind === "pct") cell.numFmt = '0.0%';
+      ws.getCell(`C${ir}`).border = BORDER; ws.getCell(`D${ir}`).border = BORDER;
+      ir++;
+    }
+    ir += 1;
+    // Bảng tiến độ thanh toán các đợt
+    put(ws, `A${ir}`, "TIẾN ĐỘ THANH TOÁN CÁC ĐỢT", { font: { bold: true, size: 12, color: { argb: GREEN } } });
+    ir++;
+    const dcols = [
+      { h: "Đợt", w: 8, c: true },
+      { h: "Nội dung / điều kiện", w: 30 },
+      { h: "Trạng thái hồ sơ", w: 20 },
+      { h: "Giá trị đợt", w: 16, m: true },
+      { h: "Đã thu", w: 16, m: true },
+      { h: "Còn lại", w: 16, m: true },
+      { h: "Ngày XHĐ", w: 12, c: true },
+      { h: "Đến hạn", w: 12, c: true },
+      { h: "Ghi chú", w: 28 },
+    ];
+    headerRow(ws, ir, dcols.length);
+    ws.getRow(ir).values = dcols.map((d) => d.h);
+    ir++;
+    for (const rrow of p.rs) {
+      const row = ws.getRow(ir);
+      const vals = [rrow.dot, rrow.noidung || "", statusName(rrow.status), rrow.value || 0, rrow.paid || 0, outstanding(rrow), fmtDate(rrow.ngayXuatHD) === "—" ? "" : fmtDate(rrow.ngayXuatHD), fmtDate(rrow.ngayDenHan) === "—" ? "" : fmtDate(rrow.ngayDenHan), rrow.ghichu || ""];
+      dcols.forEach((d, ci) => {
+        const cell = row.getCell(ci + 1);
+        cell.value = vals[ci];
+        cell.border = BORDER;
+        cell.font = { size: 10 };
+        if (d.m) { cell.numFmt = MONEY; cell.alignment = { horizontal: "right" }; }
+        else if (d.c) cell.alignment = { horizontal: "center" };
+        else cell.alignment = { horizontal: "left", wrapText: true, vertical: "top" };
+      });
+      ir++;
+    }
+    // tổng đợt
+    const tr = ws.getRow(ir);
+    dcols.forEach((d, ci) => {
+      const cell = tr.getCell(ci + 1);
+      cell.border = BORDER; cell.fill = solid(GREENSOFT); cell.font = { bold: true, size: 10 };
+      if (ci === 0) cell.value = "TỔNG";
+      const m = { 3: p.rs.reduce((s, x) => s + (x.value || 0), 0), 4: p.paid, 5: p.rs.reduce((s, x) => s + outstanding(x), 0) };
+      if (m[ci] != null) { cell.value = m[ci]; cell.numFmt = MONEY; cell.alignment = { horizontal: "right" }; }
+    });
   }
-  const ws3 = wb.addWorksheet("Theo khách hàng", {
-    views: [{ showGridLines: false }],
-    pageSetup: { orientation: "landscape", fitToPage: true },
-  });
-  const cols3 = [
-    { header: "STT", key: "stt", width: 5, center: true },
-    { header: "Chủ đầu tư", key: "name", width: 38 },
-    { header: "Số HĐ/PL", key: "n", width: 10, center: true },
-    { header: "Giá trị (VND)", key: "value", width: 18, money: true },
-    { header: "Đã thu (VND)", key: "paid", width: 18, money: true },
-    { header: "Còn phải thu (VND)", key: "os", width: 18, money: true },
-    { header: "Quá hạn (VND)", key: "overdue", width: 16, money: true },
-    { header: "% đã thu", key: "pct", width: 9, center: true },
-  ];
-  const data3 = [...byCus.values()]
-    .sort((a, b) => b.os - a.os)
-    .map((o, i) => ({
-      stt: i + 1,
-      name: o.name,
-      n: o.n,
-      value: o.value,
-      paid: o.paid,
-      os: o.os,
-      overdue: o.overdue,
-      pct: o.value > 0 ? Math.round((o.paid / o.value) * 100) + "%" : "0%",
-    }));
-  styleTitle(ws3, cols3.length, "BÁO CÁO CÔNG NỢ PHẢI THU — THEO KHÁCH HÀNG", `${byCus.size} chủ đầu tư`);
-  fillTable(ws3, 5, cols3, data3, {
-    value: [...byCus.values()].reduce((a, o) => a + o.value, 0),
-    paid: g.totalPaid,
-    os: g.outstanding,
-    overdue: g.overdue,
-  });
 
   const buf = await wb.xlsx.writeBuffer();
   download(

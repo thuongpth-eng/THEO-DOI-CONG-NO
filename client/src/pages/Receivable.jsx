@@ -13,6 +13,7 @@ import Tracking from "./Tracking";
 import Tabs from "../components/shared/Tabs";
 import api from "../lib/data";
 import { exportExcel, exportCSV, exportJSON, printReport } from "../lib/exporter";
+import { useAuth } from "../context/AuthContext";
 
 const TABS = [
   { key: "dash", label: "Dashboard", icon: LayoutDashboard },
@@ -37,6 +38,7 @@ function ExportBtn({ icon: Icon, label, onClick, busy, primary }) {
 }
 
 export default function Receivable() {
+  const { user } = useAuth();
   const [tab, setTab] = useState("dash");
   const [busy, setBusy] = useState("");
 
@@ -50,7 +52,7 @@ export default function Receivable() {
         api.listInstallments(),
         api.listCustomers(),
       ]);
-      if (kind === "excel") await exportExcel(contracts, installments, customers);
+      if (kind === "excel") await exportExcel(contracts, installments, customers, { exportedBy: user?.name });
       else if (kind === "csv") exportCSV(installments);
       else if (kind === "json") exportJSON({ customers, contracts, installments });
       else if (kind === "print") printReport(contracts, installments);

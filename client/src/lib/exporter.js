@@ -6,6 +6,7 @@ import {
   statusName,
   outstanding,
   daysLate,
+  arisen,
   summarize,
 } from "./models";
 
@@ -159,7 +160,7 @@ export async function exportExcel(contracts, installments, customers = [], opts 
     const os = value - paid;
     const overdue = rs.filter((r) => daysLate(r) > 0).reduce((s, r) => s + outstanding(r), 0);
     const maxLate = rs.reduce((m, r) => Math.max(m, daysLate(r)), 0);
-    const st = maxLate > 0 ? "Quá hạn" : os <= 0.5 && paid > 0 ? "Hoàn thành" : "Đang thực hiện";
+    const st = maxLate > 0 ? "Quá hạn" : os <= 0.5 && paid > 0 ? "Đã hoàn thành" : "Đang thực hiện";
     return { c, i, rs, value, invoiced, paid, os, overdue, maxLate, st, pct: value > 0 ? paid / value : 0 };
   });
   const T = perC.reduce(
@@ -258,7 +259,7 @@ export async function exportExcel(contracts, installments, customers = [], opts 
   });
   const cols = [
     { h: "STT", w: 5, c: true },
-    { h: "Mã dự án", w: 14 },
+    { h: "Số hợp đồng", w: 20 },
     { h: "Tên công trình", w: 26 },
     { h: "Chủ đầu tư", w: 30 },
     { h: "Giá trị HĐ", w: 17, m: true },
@@ -276,7 +277,7 @@ export async function exportExcel(contracts, installments, customers = [], opts 
   let rr = HR + 1;
   for (const p of perC) {
     const row = ls.getRow(rr);
-    const vals = [p.i + 1, p.c.maDuAn || "", p.c.name, p.c.customerName, p.value, p.invoiced, p.paid, p.os, p.pct, p.st];
+    const vals = [p.i + 1, p.c.code || p.c.maDuAn || "", p.c.name, p.c.customerName, p.value, p.invoiced, p.paid, p.os, p.pct, p.st];
     cols.forEach((col, ci) => {
       const cell = row.getCell(ci + 1);
       cell.value = vals[ci];
@@ -289,7 +290,7 @@ export async function exportExcel(contracts, installments, customers = [], opts 
     });
     // Tô màu trạng thái
     const stCell = row.getCell(cols.length);
-    stCell.font = { size: 10, bold: true, color: { argb: p.st === "Quá hạn" ? "FFC62828" : p.st === "Hoàn thành" ? "FF2E7D32" : "FF0969A7" } };
+    stCell.font = { size: 10, bold: true, color: { argb: p.st === "Quá hạn" ? "FFC62828" : p.st === "Đã hoàn thành" ? "FF2E7D32" : "FF0969A7" } };
     rr++;
   }
   // Dòng tổng
@@ -323,14 +324,21 @@ export async function exportExcel(contracts, installments, customers = [], opts 
       views: [{ showGridLines: false }],
       pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } },
     });
-    ws.columns = [{ width: 5 }, { width: 30 }, { width: 20 }, { width: 20 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 30 }];
-    const NC = 9;
+    ws.columns = [
+      { width: 20 }, { width: 30 }, { width: 22 }, { width: 18 }, { width: 18 }, { width: 12 },
+      { width: 12 }, { width: 12 }, { width: 16 }, { width: 16 }, { width: 12 }, { width: 16 },
+      { width: 16 }, { width: 14 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 28 },
+    ];
+    const NC = 18;
     ws.mergeCells(1, 1, 1, NC);
     put(ws, "A1", `CÔNG TRÌNH: ${c.name}`, { font: { bold: true, size: 14, color: { argb: NAVY } } });
     ws.mergeCells(2, 1, 2, NC);
     put(ws, "A2", `Chủ đầu tư: ${c.customerName || "—"}  ·  Mã DA: ${c.maDuAn || "—"}  ·  Số HĐ: ${c.code || "—"}`, { font: { size: 10, color: { argb: "FF666666" } } });
     // Khối thông tin
+    const nguoiPT = c.nguoiPhuTrach || p.rs.map((x) => x.nguoiPhuTrach).filter(Boolean).join(", ") || "—";
     const info = [
+      ["Số hợp đồng", c.code || "—", false],
+      ["Ngày ký", c.ngayKy ? fmtDate(c.ngayKy) : "—", false],
       ["Giá trị hợp đồng", p.value, true],
       ["Đã xuất hóa đơn", p.invoiced, true],
       ["Đã thu", p.paid, true],
@@ -338,9 +346,10 @@ export async function exportExcel(contracts, installments, customers = [], opts 
       ["Quá hạn", p.overdue, true],
       ["Tỷ lệ thu", p.pct, false, "pct"],
       ["Tình trạng", p.st, false],
-      ["Người phụ trách", p.rs.map((x) => x.nguoiPhuTrach).filter(Boolean).join(", ") || "—", false],
-      ["Địa điểm", c.loc || "—", false],
+      ["Người phụ trách", nguoiPT, false],
+      ["Công trình", c.fullName || c.name, false],
       ["Hạng mục", c.work || "—", false],
+      ["Địa điểm", c.loc || "—", false],
       ["Cập nhật lần cuối", c.updatedAt ? new Date(c.updatedAt).toLocaleString("vi-VN") : "—", false],
     ];
     let ir = 4;
@@ -359,21 +368,39 @@ export async function exportExcel(contracts, installments, customers = [], opts 
     ir++;
     const dcols = [
       { h: "Đợt", w: 8, c: true },
-      { h: "Nội dung / điều kiện", w: 30 },
-      { h: "Trạng thái hồ sơ", w: 20 },
-      { h: "Giá trị đợt", w: 16, m: true },
-      { h: "Đã thu", w: 16, m: true },
-      { h: "Còn lại", w: 16, m: true },
-      { h: "Ngày XHĐ", w: 12, c: true },
-      { h: "Đến hạn", w: 12, c: true },
+      { h: "Nội dung cần hoàn thành", w: 30 },
+      { h: "Hồ sơ yêu cầu", w: 22 },
+      { h: "Trạng thái hồ sơ", w: 18 },
+      { h: "Trạng thái TT", w: 18 },
+      { h: "Ngày gửi HS", w: 12, c: true },
+      { h: "Ngày xuất HĐ", w: 12, c: true },
+      { h: "Ngày theo HĐ", w: 12, c: true },
+      { h: "Giá trị đợt (VNĐ)", w: 16, m: true },
+      { h: "TT thực tế (VNĐ)", w: 16, m: true },
+      { h: "Ngày thực thu", w: 12, c: true },
+      { h: "Còn lại (VNĐ)", w: 16, m: true },
+      { h: "Công nợ đến hạn (VNĐ)", w: 16, m: true },
+      { h: "Quá hạn (VNĐ)", w: 14, m: true },
+      { h: "Dự kiến thu HĐ (VNĐ)", w: 16, m: true },
+      { h: "Dự kiến thu QLDA (VNĐ)", w: 16, m: true },
+      { h: "Dự kiến thu CĐT (VNĐ)", w: 16, m: true },
       { h: "Ghi chú", w: 28 },
     ];
     headerRow(ws, ir, dcols.length);
     ws.getRow(ir).values = dcols.map((d) => d.h);
     ir++;
+    const dt = (v) => (fmtDate(v) === "—" ? "" : fmtDate(v));
     for (const rrow of p.rs) {
       const row = ws.getRow(ir);
-      const vals = [rrow.dot, rrow.noidung || "", statusName(rrow.status), rrow.value || 0, rrow.paid || 0, outstanding(rrow), fmtDate(rrow.ngayXuatHD) === "—" ? "" : fmtDate(rrow.ngayXuatHD), fmtDate(rrow.ngayDenHan) === "—" ? "" : fmtDate(rrow.ngayDenHan), rrow.ghichu || ""];
+      const os = outstanding(rrow);
+      const payTT = (rrow.paid || 0) <= 0 ? "Chưa thanh toán" : os > 0.5 ? "Thanh toán một phần" : "Đã thanh toán";
+      const vals = [
+        rrow.dot, rrow.noidung || "", rrow.hoso || "", statusName(rrow.status), payTT,
+        dt(rrow.ngayGuiHS), dt(rrow.ngayXuatHD), dt(rrow.ngayDenHan),
+        rrow.value || 0, rrow.paid || 0, dt(rrow.ngayTT), os,
+        arisen(rrow) ? os : 0, daysLate(rrow) > 0 ? os : 0,
+        "", "", "", rrow.ghichu || "",
+      ];
       dcols.forEach((d, ci) => {
         const cell = row.getCell(ci + 1);
         cell.value = vals[ci];
@@ -387,12 +414,14 @@ export async function exportExcel(contracts, installments, customers = [], opts 
     }
     // tổng đợt
     const tr = ws.getRow(ir);
+    const sumV = p.rs.reduce((s, x) => s + (x.value || 0), 0);
+    const sumOs = p.rs.reduce((s, x) => s + outstanding(x), 0);
+    const totMap = { 8: sumV, 9: p.paid, 11: sumOs, 12: p.rs.reduce((s, x) => s + (arisen(x) ? outstanding(x) : 0), 0), 13: p.overdue };
     dcols.forEach((d, ci) => {
       const cell = tr.getCell(ci + 1);
       cell.border = BORDER; cell.fill = solid(GREENSOFT); cell.font = { bold: true, size: 10 };
       if (ci === 0) cell.value = "TỔNG";
-      const m = { 3: p.rs.reduce((s, x) => s + (x.value || 0), 0), 4: p.paid, 5: p.rs.reduce((s, x) => s + outstanding(x), 0) };
-      if (m[ci] != null) { cell.value = m[ci]; cell.numFmt = MONEY; cell.alignment = { horizontal: "right" }; }
+      if (totMap[ci] != null) { cell.value = totMap[ci]; cell.numFmt = MONEY; cell.alignment = { horizontal: "right" }; }
     });
   }
 

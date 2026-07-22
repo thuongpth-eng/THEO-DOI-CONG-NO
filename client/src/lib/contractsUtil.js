@@ -13,10 +13,15 @@ export const slug = (s) =>
     .replace(/(^-|-$)/g, "")
     .slice(0, 40);
 
-// Lấy năm từ số hợp đồng / mã dự án (fallback "Chưa rõ năm").
+// Lấy năm: ưu tiên số HĐ / mã dự án; nếu không có thì lấy từ Ngày ký (hoặc mốc cập nhật).
 export const yearOf = (c) => {
   const m = (c.code || "").match(/(20\d{2})/) || (c.maDuAn || "").match(/(20\d{2})/);
-  return m ? m[1] : "Chưa rõ năm";
+  if (m) return m[1];
+  for (const d of [c.ngayKy, c.updatedAt]) {
+    const y = String(d || "").match(/(20\d{2})/);
+    if (y) return y[1];
+  }
+  return "Chưa rõ năm";
 };
 
 export const todayISO = () => new Date().toISOString().slice(0, 10);

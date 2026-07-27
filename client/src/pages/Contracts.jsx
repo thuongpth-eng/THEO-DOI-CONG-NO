@@ -8,7 +8,6 @@ import {
   ChevronDown,
   Building2,
   MapPin,
-  UserPlus,
   Layers,
   CalendarClock,
   Paperclip,
@@ -238,11 +237,6 @@ export default function Contracts() {
               <Btn onClick={() => openAdd()}>
                 <span className="flex items-center gap-1.5">
                   <Plus size={16} /> Thêm hợp đồng / phụ lục
-                </span>
-              </Btn>
-              <Btn variant="ghost" onClick={() => setCustModal(true)}>
-                <span className="flex items-center gap-1.5">
-                  <UserPlus size={16} /> Thêm khách hàng mới
                 </span>
               </Btn>
             </>

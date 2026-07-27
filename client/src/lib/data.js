@@ -47,6 +47,11 @@ const localApi = {
     saveLocal(store);
     return item;
   },
+  async deleteCustomer(id) {
+    const store = loadLocal();
+    store.customers = store.customers.filter((x) => x.id !== id);
+    saveLocal(store);
+  },
   async listInstallments() {
     return loadLocal().installments;
   },
@@ -122,6 +127,10 @@ const firestoreApi = {
     }
     const ref = await addDoc(collection(db, "customers"), { name: c.name });
     return { ...c, id: ref.id };
+  },
+  async deleteCustomer(id) {
+    const { db, doc, deleteDoc } = await fs();
+    await deleteDoc(doc(db, "customers", id));
   },
   async listInstallments() {
     const { db, collection, getDocs } = await fs();

@@ -7,11 +7,11 @@ import {
   ChevronDown,
   Building2,
   MapPin,
-  UserPlus,
   Layers,
   CalendarClock,
   Trash2,
   Pencil,
+  UploadCloud,
   X,
 } from "lucide-react";
 import api from "../lib/data";
@@ -31,6 +31,7 @@ import Modal, { Field, Input, Textarea, Select, Btn } from "../components/Modal"
 import Stepper from "../components/shared/Stepper";
 import LoadingState from "../components/shared/LoadingState";
 import EmptyState from "../components/shared/EmptyState";
+import ImportModal from "../components/ImportModal";
 import { useAuth } from "../context/AuthContext";
 
 /* Ô nhập trực tiếp trên bảng */
@@ -165,6 +166,7 @@ export default function Tracking({ summary = false, embedded = false }) {
   // Sửa cả đợt qua form (bổ sung cho nhập trực tiếp trên ô)
   const [editForm, setEditForm] = useState(null);
   const [editSaving, setEditSaving] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   async function reload() {
     const [ct, inst, cus] = await Promise.all([
@@ -438,9 +440,9 @@ export default function Tracking({ summary = false, embedded = false }) {
                 <Plus size={16} /> Thêm hợp đồng / phụ lục
               </span>
             </Btn>
-            <Btn variant="ghost" onClick={() => setCustModal(true)}>
+            <Btn variant="ghost" onClick={() => setImportOpen(true)}>
               <span className="flex items-center gap-1.5">
-                <UserPlus size={16} /> Thêm khách hàng mới
+                <UploadCloud size={16} /> Nhập từ Excel
               </span>
             </Btn>
           </div>
@@ -885,6 +887,8 @@ export default function Tracking({ summary = false, embedded = false }) {
           </div>
         )}
       </Modal>
+
+      <ImportModal open={importOpen} onClose={() => setImportOpen(false)} onDone={reload} />
     </div>
   );
 }

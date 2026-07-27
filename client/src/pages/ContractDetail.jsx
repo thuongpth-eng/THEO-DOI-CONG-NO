@@ -8,6 +8,7 @@ import {
   Building2,
   Paperclip,
   ExternalLink,
+  UploadCloud,
   X,
 } from "lucide-react";
 import api from "../lib/data";
@@ -166,6 +167,29 @@ export default function ContractDetail() {
   }
   function removeFile(i) {
     setForm((f) => ({ ...f, files: f.files.filter((_, idx) => idx !== i) }));
+  }
+  // Úp file nhỏ trực tiếp (base64) — miễn phí, không cần Firebase Storage
+  function onPickFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 500 * 1024) {
+      return alert("File quá lớn (>500KB). Với file lớn, hãy tải lên Google Drive/SharePoint rồi dán link vào ô bên dưới.");
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result);
+      setForm((f) => {
+        const files = f.files || [];
+        const total = files.reduce((s, x) => s + (x.url?.length || 0), 0) + dataUrl.length;
+        if (total > 850 * 1024) {
+          alert("Tổng hồ sơ đính kèm của đợt này đã quá lớn. Hãy bớt file hoặc dùng link cho file lớn.");
+          return f;
+        }
+        return { ...f, files: [...files, { name: file.name, url: dataUrl, upload: true }] };
+      });
+    };
+    reader.readAsDataURL(file);
   }
 
   async function saveInst() {
@@ -533,6 +557,18 @@ export default function ContractDetail() {
                 ))}
               </div>
             )}
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-brand-500 bg-brandtint px-4 text-sm font-semibold text-brand-600 hover:bg-brand-500/20">
+                <UploadCloud size={16} /> Úp file (PDF/Excel/ảnh ≤500KB)
+                <input
+                  type="file"
+                  accept=".pdf,.xlsx,.xls,.doc,.docx,.png,.jpg,.jpeg"
+                  className="hidden"
+                  onChange={onPickFile}
+                />
+              </label>
+              <span className="text-xs text-faint">— úp thẳng từ máy (miễn phí). File lớn hơn thì dán link Drive ↓</span>
+            </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <div className="sm:w-1/3">
                 <Input

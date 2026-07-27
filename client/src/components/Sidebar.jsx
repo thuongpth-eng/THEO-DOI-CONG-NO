@@ -65,7 +65,7 @@ export default function Sidebar({ open = false, onClose }) {
             <Logo size={54} />
           </div>
           <div className="mt-2 text-center text-sm font-bold uppercase leading-snug tracking-wide text-navfg">
-            Kiểm soát hợp đồng chủ đầu tư
+            Kiểm soát hợp đồng<br />chủ đầu tư
           </div>
         </div>
 

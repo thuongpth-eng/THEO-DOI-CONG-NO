@@ -4,8 +4,6 @@ import {
   LayoutGrid,
   Table2,
   FileSpreadsheet,
-  FileText,
-  Download,
   Printer,
 } from "lucide-react";
 import Overview from "./Overview";
@@ -83,13 +81,6 @@ export default function Receivable() {
               label="In báo cáo"
               onClick={() => run("print")}
               busy={busy === "print"}
-            />
-            <ExportBtn icon={FileText} label="CSV" onClick={() => run("csv")} busy={busy === "csv"} />
-            <ExportBtn
-              icon={Download}
-              label="Sao lưu JSON"
-              onClick={() => run("json")}
-              busy={busy === "json"}
             />
           </div>
         )}

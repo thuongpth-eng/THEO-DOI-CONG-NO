@@ -87,7 +87,7 @@ export default function Links() {
           <table className="w-full text-sm">
             <thead>
               <tr className="h-12 border-b border-line text-left text-xs uppercase tracking-wider text-faint">
-                <th className="px-3 py-3 font-medium">Công trình</th>
+                <th className="px-3 py-3 font-medium">Mã nguồn dự án</th>
                 <th className="px-3 py-3 font-medium">Chủ đầu tư</th>
                 <th className="px-3 py-3 font-medium">Link hồ sơ</th>
                 <th className="px-3 py-3"></th>

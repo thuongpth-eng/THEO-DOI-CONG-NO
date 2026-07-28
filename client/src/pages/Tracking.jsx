@@ -162,6 +162,7 @@ export default function Tracking({ summary = false, embedded = false }) {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [editCt, setEditCt] = useState(null); // id hợp đồng đang sửa (null = thêm mới)
   const [custModal, setCustModal] = useState(false);
   const [custName, setCustName] = useState("");
   const [custSaving, setCustSaving] = useState(false);
@@ -188,8 +189,40 @@ export default function Tracking({ summary = false, embedded = false }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   function openAdd(preset = {}) {
+    setEditCt(null);
     setForm({ ...emptyForm, ...preset });
     setModal(true);
+  }
+
+  // Mở form sửa 1 hợp đồng đã có
+  function openEditCt(c) {
+    setEditCt(c.id);
+    setForm({
+      ...emptyForm,
+      name: c.name || "",
+      customerName: c.customerName || "",
+      code: c.code || "",
+      work: c.work || "",
+      loc: c.loc || "",
+      totalAfterTax: c.totalAfterTax || "",
+      maDuAn: c.maDuAn || "",
+      loai: c.loai || "Hợp đồng",
+    });
+    setModal(true);
+  }
+
+  // Xóa 1 hợp đồng + toàn bộ đợt của nó
+  async function delContract(c) {
+    const soDot = installments.filter((i) => i.contractId === c.id).length;
+    if (
+      !window.confirm(
+        `Xóa hợp đồng "${c.code || c.name}"${soDot ? ` và ${soDot} đợt của nó` : ""}?\nKhông thể hoàn tác.`
+      )
+    )
+      return;
+    await api.deleteContract(c.id);
+    setContracts((prev) => prev.filter((x) => x.id !== c.id));
+    setInstallments((prev) => prev.filter((x) => x.contractId !== c.id));
   }
 
   async function saveContract() {
@@ -205,7 +238,7 @@ export default function Tracking({ summary = false, embedded = false }) {
       customerName = form.customerName;
       customerId = customers.find((c) => c.name === customerName)?.id || "";
     }
-    await api.addContract({
+    const payload = {
       name: form.name.trim(),
       customerId,
       customerName,
@@ -216,13 +249,18 @@ export default function Tracking({ summary = false, embedded = false }) {
       maDuAn: form.maDuAn.trim(),
       group: form.name.trim(),
       loai: form.loai || "Hợp đồng",
-      order: contracts.length + 1,
       updatedAt: nowISO(),
       updatedBy: user?.name || "",
-    });
+    };
+    if (editCt) {
+      await api.updateContract(editCt, payload);
+    } else {
+      await api.addContract({ ...payload, order: contracts.length + 1 });
+    }
     setSaving(false);
     setModal(false);
     setForm(emptyForm);
+    setEditCt(null);
     reload();
   }
 
@@ -626,11 +664,31 @@ export default function Tracking({ summary = false, embedded = false }) {
                               <Stepper rows={c.rows} />
                             </span>
                           </div>
-                          <div className="text-right text-xs">
-                            <span className="text-faint">Đã thu </span>
-                            <b className="text-brand-500">{fmtVND(c.paid)}</b>
-                            <span className="ml-2 text-faint">Còn phải thu </span>
-                            <b className="text-ink">{fmtVND(c.os)}</b>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right text-xs">
+                              <span className="text-faint">Đã thu </span>
+                              <b className="text-brand-500">{fmtVND(c.paid)}</b>
+                              <span className="ml-2 text-faint">Còn phải thu </span>
+                              <b className="text-ink">{fmtVND(c.os)}</b>
+                            </div>
+                            {canEdit && !summary && (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => openEditCt(c)}
+                                  className="rounded-lg p-1.5 text-faint hover:bg-hover hover:text-accent"
+                                  title="Sửa thông tin hợp đồng"
+                                >
+                                  <Pencil size={15} />
+                                </button>
+                                <button
+                                  onClick={() => delContract(c)}
+                                  className="rounded-lg p-1.5 text-faint hover:bg-hover hover:text-danger"
+                                  title="Xóa hợp đồng"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                         {c.work && (
@@ -692,12 +750,23 @@ export default function Tracking({ summary = false, embedded = false }) {
       {/* Modal thêm HĐ/PL */}
       <Modal
         open={modal}
-        onClose={() => setModal(false)}
-        title="Thêm hợp đồng / phụ lục"
+        onClose={() => {
+          setModal(false);
+          setEditCt(null);
+        }}
+        title={editCt ? "Sửa thông tin hợp đồng" : "Thêm hợp đồng / phụ lục"}
         wide
         footer={
           <>
-            <Btn variant="ghost" onClick={() => setModal(false)}>Hủy</Btn>
+            <Btn
+              variant="ghost"
+              onClick={() => {
+                setModal(false);
+                setEditCt(null);
+              }}
+            >
+              Hủy
+            </Btn>
             <Btn onClick={saveContract} disabled={saving}>{saving ? "Đang lưu…" : "Lưu"}</Btn>
           </>
         }

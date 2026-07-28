@@ -9,8 +9,10 @@ export default function Links() {
   const { canEdit } = useAuth();
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(null); // contract đang sửa link
+  const [editing, setEditing] = useState(null); // contract đang sửa
   const [url, setUrl] = useState("");
+  const [name, setName] = useState("");
+  const [cust, setCust] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function reload() {
@@ -24,13 +26,19 @@ export default function Links() {
   function openEdit(c) {
     setEditing(c);
     setUrl(c.linkHoSo || "");
+    setName(c.name || "");
+    setCust(c.customerName || "");
   }
 
   async function save() {
     let v = url.trim();
     if (v && !/^https?:\/\//i.test(v)) v = "https://" + v;
     setSaving(true);
-    await api.updateContract(editing.id, { linkHoSo: v });
+    await api.updateContract(editing.id, {
+      name: name.trim(),
+      customerName: cust.trim(),
+      linkHoSo: v,
+    });
     setSaving(false);
     setEditing(null);
     reload();
@@ -135,7 +143,7 @@ export default function Links() {
       <Modal
         open={!!editing}
         onClose={() => setEditing(null)}
-        title={`Link hồ sơ — ${editing?.name || ""}`}
+        title={`Chỉnh sửa — ${editing?.name || ""}`}
         footer={
           <>
             <Btn variant="ghost" onClick={() => setEditing(null)}>
@@ -147,12 +155,26 @@ export default function Links() {
           </>
         }
       >
+        <Field label="Mã nguồn dự án">
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="VD: HOWELL"
+            autoFocus
+          />
+        </Field>
+        <Field label="Chủ đầu tư">
+          <Input
+            value={cust}
+            onChange={(e) => setCust(e.target.value)}
+            placeholder="Tên công ty chủ đầu tư"
+          />
+        </Field>
         <Field label="Đường dẫn hồ sơ (Google Drive, OneDrive…)" hint="Để trống rồi Lưu nếu muốn xóa link">
           <Input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://drive.google.com/..."
-            autoFocus
           />
         </Field>
       </Modal>

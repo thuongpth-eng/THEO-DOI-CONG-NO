@@ -2,7 +2,6 @@ import { NavLink } from "react-router-dom";
 import {
   Link2,
   FileText,
-  History,
   Users,
   LogOut,
   ArrowLeft,
@@ -15,7 +14,6 @@ const NAV = [
   { to: "/", label: "Theo dõi công nợ", icon: Wallet, end: true },
   { to: "/contracts", label: "Kho lưu trữ hợp đồng thi công", icon: FileText },
   { to: "/links", label: "Mã liên kết", icon: Link2 },
-  { to: "/history", label: "Lịch sử thay đổi", icon: History },
 ];
 
 const ADMIN = [{ to: "/users", label: "Người dùng", icon: Users }];

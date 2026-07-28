@@ -26,6 +26,8 @@ import Modal, { Field, Input, Textarea, Select, Btn } from "../components/Modal"
 import Stat from "../components/shared/Stat";
 import LoadingState from "../components/shared/LoadingState";
 import { useAuth } from "../context/AuthContext";
+import HistoryList from "../components/shared/HistoryList";
+import { buildHistory, appendHistory } from "../lib/history";
 
 const emptyInst = {
   dot: "",
@@ -105,7 +107,7 @@ function FileLinks({ files }) {
 export default function ContractDetail() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { canEdit } = useAuth();
+  const { canEdit, user } = useAuth();
   const [contract, setContract] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -216,7 +218,11 @@ export default function ContractDetail() {
       hanTT: Number(form.hanTT) || 0,
       files: form.files || [],
     };
+    const by = user?.name || "";
+    payload.updatedAt = new Date().toISOString();
+    payload.updatedBy = by;
     if (editing) {
+      payload.history = appendHistory(editing.history, buildHistory(editing, payload, by));
       await api.updateInstallment(editing.id, payload);
     } else {
       await api.addInstallment({ ...payload, order: rows.length + 1 });
@@ -601,6 +607,15 @@ export default function ContractDetail() {
               file cho 1 đợt.
             </p>
           </div>
+
+          {editing && (
+            <div className="sm:col-span-2">
+              <div className="mb-1 mt-1 border-b border-line pb-1 text-[11px] font-bold uppercase tracking-wide text-brand-500">
+                Lịch sử thay đổi ({(form.history || []).length})
+              </div>
+              <HistoryList items={form.history} />
+            </div>
+          )}
         </div>
       </Modal>
 

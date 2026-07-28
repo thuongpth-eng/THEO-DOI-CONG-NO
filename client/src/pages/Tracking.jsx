@@ -31,7 +31,9 @@ import Modal, { Field, Input, Textarea, Select, Btn } from "../components/Modal"
 import Stepper from "../components/shared/Stepper";
 import LoadingState from "../components/shared/LoadingState";
 import EmptyState from "../components/shared/EmptyState";
+import HistoryList from "../components/shared/HistoryList";
 import ImportModal from "../components/ImportModal";
+import { buildHistory, appendHistory } from "../lib/history";
 import { useAuth } from "../context/AuthContext";
 
 /* Ô nhập trực tiếp trên bảng */
@@ -240,7 +242,7 @@ export default function Tracking({ summary = false, embedded = false }) {
   async function saveField(row, patch) {
     const t = nowISO();
     const by = user?.name || "";
-    const p = { ...patch, updatedAt: t, updatedBy: by };
+    const p = { ...patch, updatedAt: t, updatedBy: by, history: appendHistory(row.history, buildHistory(row, patch, by)) };
     setInstallments((prev) => prev.map((r) => (r.id === row.id ? { ...r, ...p } : r)));
     setContracts((prev) =>
       prev.map((c) => (c.id === row.contractId ? { ...c, updatedAt: t, updatedBy: by } : c))
@@ -311,6 +313,8 @@ export default function Tracking({ summary = false, embedded = false }) {
     };
     const t = nowISO();
     const by = user?.name || "";
+    const orig = installments.find((x) => x.id === editForm.id) || {};
+    patch.history = appendHistory(orig.history, buildHistory(orig, patch, by));
     patch.updatedAt = t;
     patch.updatedBy = by;
     setInstallments((prev) => prev.map((r) => (r.id === editForm.id ? { ...r, ...patch } : r)));
@@ -883,6 +887,11 @@ export default function Tracking({ summary = false, embedded = false }) {
               <Field label="Ghi chú">
                 <Textarea value={editForm.ghichu || ""} onChange={setEF("ghichu")} rows={2} />
               </Field>
+            </div>
+
+            <SubHead>Lịch sử thay đổi ({(editForm.history || []).length})</SubHead>
+            <div className="sm:col-span-2">
+              <HistoryList items={editForm.history} />
             </div>
           </div>
         )}

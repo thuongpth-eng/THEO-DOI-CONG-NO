@@ -163,6 +163,8 @@ export default function Tracking({ summary = false, embedded = false }) {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [editCt, setEditCt] = useState(null); // id hợp đồng đang sửa (null = thêm mới)
+  const [preDots, setPreDots] = useState([]); // các đợt đọc được từ file công nợ (chờ Lưu)
+  const [reading, setReading] = useState("");
   const [custModal, setCustModal] = useState(false);
   const [custName, setCustName] = useState("");
   const [custSaving, setCustSaving] = useState(false);
@@ -190,8 +192,43 @@ export default function Tracking({ summary = false, embedded = false }) {
 
   function openAdd(preset = {}) {
     setEditCt(null);
+    setPreDots([]);
+    setReading("");
     setForm({ ...emptyForm, ...preset });
     setModal(true);
+  }
+
+  // Úp file công nợ (mẫu chuẩn app) khi thêm HĐ mới → tự điền form + tạo sẵn danh sách đợt
+  async function readCongNoFile(file) {
+    if (!file) return;
+    setReading("Đang đọc file…");
+    try {
+      const { parseOneContract } = await import("../lib/importExcel");
+      const buf = await file.arrayBuffer();
+      const { contract: c, installments: dots, warnings } = await parseOneContract(buf);
+      if (!c) {
+        setReading("");
+        return alert(warnings[0] || "Không đọc được file.");
+      }
+      setForm((f) => ({
+        ...f,
+        name: c.name || f.name,
+        code: c.code || f.code,
+        totalAfterTax: c.totalAfterTax || f.totalAfterTax,
+        work: c.work || f.work,
+        loc: c.loc || f.loc,
+        // CĐT: chọn nếu đã có, chưa có thì điền vào ô "nhập mới"
+        customerName: customers.some((x) => x.name === c.customerName) ? c.customerName : f.customerName,
+        newCustomer: customers.some((x) => x.name === c.customerName) ? f.newCustomer : c.customerName || f.newCustomer,
+      }));
+      setPreDots(dots);
+      setReading(
+        `Đã đọc: ${dots.length} đợt${warnings.length ? " · " + warnings.join("; ") : ""}`
+      );
+    } catch (e) {
+      setReading("");
+      alert("Lỗi đọc file: " + (e?.message || e));
+    }
   }
 
   // Mở form sửa 1 hợp đồng đã có
@@ -255,12 +292,29 @@ export default function Tracking({ summary = false, embedded = false }) {
     if (editCt) {
       await api.updateContract(editCt, payload);
     } else {
-      await api.addContract({ ...payload, order: contracts.length + 1 });
+      const created = await api.addContract({ ...payload, order: contracts.length + 1 });
+      // Nếu có đợt đọc từ file công nợ → tạo luôn (thêm vào, không xóa dữ liệu cũ)
+      if (preDots.length && created?.id) {
+        for (const d of preDots) {
+          await api.addInstallment({
+            ...d,
+            contractId: created.id,
+            contractName: payload.name,
+            customerId,
+            duKienHD: "", duKienQLDA: "", duKienCDT: "",
+            nguoiPhuTrach: "", hanTT: 0, files: [], history: [],
+            updatedAt: nowISO(),
+            updatedBy: user?.name || "Nhập Excel",
+          });
+        }
+      }
     }
     setSaving(false);
     setModal(false);
     setForm(emptyForm);
     setEditCt(null);
+    setPreDots([]);
+    setReading("");
     reload();
   }
 
@@ -771,6 +825,56 @@ export default function Tracking({ summary = false, embedded = false }) {
           </>
         }
       >
+        {!editCt && (
+          <div className="mb-4 rounded-lg border border-dashed border-brand-500/60 bg-brand-500/5 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-xs text-sub">
+                <b className="text-ink">Có file công nợ của hợp đồng này?</b> Úp lên để app tự
+                điền thông tin và tạo sẵn các đợt (theo mẫu Excel app xuất ra).
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-600">
+                <UploadCloud size={15} />
+                Chọn file Excel
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={(e) => {
+                    readCongNoFile(e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+            {reading && (
+              <div className="mt-2 text-xs font-medium text-brand-600">{reading}</div>
+            )}
+            {preDots.length > 0 && (
+              <div className="mt-2 max-h-32 overflow-auto rounded-lg border border-line bg-card">
+                <table className="w-full text-[11px]">
+                  <thead className="bg-page/60 text-faint">
+                    <tr>
+                      <th className="px-2 py-1 text-left">Đợt</th>
+                      <th className="px-2 py-1 text-left">Nội dung</th>
+                      <th className="px-2 py-1 text-right">Giá trị</th>
+                      <th className="px-2 py-1 text-right">Đã thu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preDots.map((d, i) => (
+                      <tr key={i} className="border-t border-line">
+                        <td className="px-2 py-1 font-medium text-ink">{d.dot}</td>
+                        <td className="px-2 py-1 text-sub">{d.noidung}</td>
+                        <td className="px-2 py-1 text-right text-ink">{fmtVND(d.value)}</td>
+                        <td className="px-2 py-1 text-right text-brand-600">{fmtVND(d.paid)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Loại *">
             <Select value={form.loai} onChange={set("loai")}>

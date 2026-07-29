@@ -98,3 +98,61 @@ export async function parseCongNoExcel(arrayBuffer) {
   if (!contracts.length) warnings.push("Không đọc được công trình nào từ file.");
   return { customers, contracts, installments, warnings };
 }
+
+// Đọc file công nợ của MỘT hợp đồng (mẫu chuẩn app: 1 sheet công trình = khối thông tin + bảng "Đợt")
+// → trả { contract: {các trường điền sẵn}, installments: [...], warnings }.
+// Dùng khi thêm HĐ mới: chỉ điền form + tạo đợt, KHÔNG xóa dữ liệu cũ.
+export async function parseOneContract(arrayBuffer) {
+  const XLSX = (await import("xlsx")).default;
+  const wb = XLSX.read(arrayBuffer, { cellDates: true });
+  const rowsOf = (name) => XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: "" });
+  const warnings = [];
+
+  // Chọn sheet công trình đầu tiên (bỏ TỔNG QUAN / DANH SÁCH)
+  const sheetName = wb.SheetNames.find((n) => {
+    const up = n.toUpperCase().replace(/\s/g, "");
+    return (
+      !up.includes("TỔNGQUAN".toUpperCase()) && !up.includes("TONGQUAN") &&
+      !up.includes("DANHSÁCH".toUpperCase()) && !up.includes("DANHSACH")
+    );
+  });
+  if (!sheetName)
+    return { contract: null, installments: [], warnings: ["Không tìm thấy sheet công trình trong file. File phải theo mẫu chuẩn của app."] };
+
+  const rows = rowsOf(sheetName);
+  const info = {};
+  for (const r of rows) if (r[0] && r[1] !== "") info[s(r[0])] = r[1];
+
+  const code = s(info["Số hợp đồng"]) || sheetName.replace(/^\d+-/, "");
+  const contract = {
+    code,
+    name: s(info["Công trình"]) || sheetName.replace(/^\d+-/, ""),
+    customerName: s(info["Chủ đầu tư"]),
+    totalAfterTax: num(info["Giá trị hợp đồng"]),
+    work: s(info["Hạng mục"]),
+    loc: s(info["Địa điểm"]),
+    ngayKy: toISO(info["Ngày ký"]),
+    nguoiPhuTrach: s(info["Người phụ trách"]),
+  };
+
+  const installments = [];
+  const dh = rows.findIndex((r) => s(r[0]) === "Đợt");
+  if (dh >= 0) {
+    let o = 0;
+    for (let i = dh + 1; i < rows.length; i++) {
+      const r = rows[i];
+      const d0 = s(r[0]);
+      if (!d0 || d0.startsWith("TỔNG")) continue;
+      installments.push({
+        dot: d0, noidung: s(r[1]), hoso: s(r[2]), status: statusIdx(r[3]),
+        value: num(r[8]), paid: num(r[9]),
+        ngayGuiHS: toISO(r[5]), ngayXuatHD: toISO(r[6]), ngayDenHan: toISO(r[7]), ngayTT: toISO(r[10]),
+        ghichu: s(r[17]), order: ++o,
+      });
+    }
+  } else {
+    warnings.push(`Sheet "${sheetName}" không có bảng đợt (thiếu dòng tiêu đề "Đợt").`);
+  }
+
+  return { contract, installments, warnings };
+}

@@ -98,6 +98,26 @@ const localApi = {
     localStorage.removeItem(LS_KEY);
     return loadLocal();
   },
+  // Góp ý của người dùng (chế độ local: lưu trong store)
+  async addFeedback(f) {
+    const store = loadLocal();
+    store.feedback = store.feedback || [];
+    const item = { ...f, id: f.id || genId("fb") };
+    store.feedback.push(item);
+    saveLocal(store);
+    return item;
+  },
+  async listFeedback() {
+    const store = loadLocal();
+    return [...(store.feedback || [])].sort((a, b) =>
+      String(b.ts || "").localeCompare(String(a.ts || ""))
+    );
+  },
+  async deleteFeedback(id) {
+    const store = loadLocal();
+    store.feedback = (store.feedback || []).filter((x) => x.id !== id);
+    saveLocal(store);
+  },
 };
 
 /* =================== BACKEND FIRESTORE =================== */
@@ -179,6 +199,23 @@ const firestoreApi = {
   },
   async resetToSeed() {
     throw new Error("resetToSeed chỉ dùng ở chế độ local.");
+  },
+  // Góp ý của người dùng
+  async addFeedback(f) {
+    const { db, collection, addDoc } = await fs();
+    const ref = await addDoc(collection(db, "feedback"), f);
+    return { ...f, id: ref.id };
+  },
+  async listFeedback() {
+    const { db, collection, getDocs } = await fs();
+    const snap = await getDocs(collection(db, "feedback"));
+    return snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
+  },
+  async deleteFeedback(id) {
+    const { db, doc, deleteDoc } = await fs();
+    await deleteDoc(doc(db, "feedback", id));
   },
 };
 

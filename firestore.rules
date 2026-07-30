@@ -36,5 +36,10 @@ service cloud.firestore {
       allow read: if signedIn();
       allow write: if isAdmin();
     }
+    // Góp ý: ai đăng nhập cũng gửi & xem được; kế toán + TGĐ/PTGĐ được xóa.
+    match /feedback/{id} {
+      allow read, create: if signedIn();
+      allow update, delete: if isAdmin() || (signedIn() && role() == 'kt');
+    }
   }
 }

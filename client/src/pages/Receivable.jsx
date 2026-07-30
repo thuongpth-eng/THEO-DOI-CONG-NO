@@ -5,7 +5,9 @@ import {
   Table2,
   FileSpreadsheet,
   Printer,
+  SlidersHorizontal,
 } from "lucide-react";
+import ExportModal from "../components/ExportModal";
 import Overview from "./Overview";
 import Tracking from "./Tracking";
 import Tabs from "../components/shared/Tabs";
@@ -39,6 +41,25 @@ export default function Receivable() {
   const { user } = useAuth();
   const [tab, setTab] = useState("dash");
   const [busy, setBusy] = useState("");
+  const [expOpen, setExpOpen] = useState(false);
+  const [data, setData] = useState(null); // dữ liệu cho modal xuất theo ý muốn
+
+  // Mở hộp "Xuất dữ liệu": nạp dữ liệu mới nhất trước
+  async function openExport() {
+    setBusy("custom");
+    try {
+      const [contracts, installments] = await Promise.all([
+        api.listContracts(),
+        api.listInstallments(),
+      ]);
+      setData({ contracts, installments });
+      setExpOpen(true);
+    } catch (e) {
+      alert("Không tải được dữ liệu: " + (e?.message || e));
+    } finally {
+      setBusy("");
+    }
+  }
 
   // Lấy dữ liệu mới nhất rồi xuất/in — dùng chung cho mọi tab
   async function run(kind) {
@@ -77,6 +98,12 @@ export default function Receivable() {
               primary
             />
             <ExportBtn
+              icon={SlidersHorizontal}
+              label={busy === "custom" ? "Đang mở…" : "Xuất dữ liệu"}
+              onClick={openExport}
+              busy={busy === "custom"}
+            />
+            <ExportBtn
               icon={Printer}
               label="In báo cáo"
               onClick={() => run("print")}
@@ -85,6 +112,16 @@ export default function Receivable() {
           </div>
         )}
       </div>
+
+      {data && (
+        <ExportModal
+          open={expOpen}
+          onClose={() => setExpOpen(false)}
+          contracts={data.contracts}
+          installments={data.installments}
+          exportedBy={user?.name}
+        />
+      )}
 
       {/* Nội dung theo tab */}
       {tab === "dash" && <Overview embedded />}

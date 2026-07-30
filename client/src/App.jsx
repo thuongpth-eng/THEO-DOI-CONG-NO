@@ -9,6 +9,7 @@ import ContractDetail from "./pages/ContractDetail";
 import Users from "./pages/Users";
 import Links from "./pages/Links";
 import Login from "./pages/Login";
+import HelpWidget from "./components/HelpWidget";
 import { useAuth } from "./context/AuthContext";
 import { useTheme } from "./context/ThemeContext";
 
@@ -153,6 +154,9 @@ export default function App() {
           </Routes>
         </main>
       </div>
+
+      {/* Nút trợ giúp nhanh + góp ý (góc phải dưới) */}
+      <HelpWidget />
     </div>
   );
 }

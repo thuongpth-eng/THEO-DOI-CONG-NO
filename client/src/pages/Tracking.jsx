@@ -568,7 +568,7 @@ export default function Tracking({ summary = false, embedded = false }) {
             </Btn>
             <Btn variant="ghost" onClick={() => setImportOpen(true)}>
               <span className="flex items-center gap-1.5">
-                <UploadCloud size={16} /> Nhập từ Excel
+                <UploadCloud size={16} /> Úp file công nợ (đồng bộ)
               </span>
             </Btn>
           </div>

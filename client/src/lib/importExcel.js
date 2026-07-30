@@ -3,6 +3,14 @@
 import { STATUS_NAMES } from "./models.js";
 import { slug } from "./contractsUtil.js";
 
+// Lấy thư viện xlsx an toàn: bản build cho web không có .default → phải nhận cả 2 kiểu
+async function loadXLSX() {
+  const mod = await import("xlsx");
+  const X = mod?.default?.read ? mod.default : mod?.read ? mod : null;
+  if (!X) throw new Error("Không nạp được thư viện đọc Excel (xlsx).");
+  return X;
+}
+
 const statusIdx = (t) => {
   const i = STATUS_NAMES.findIndex((s) => s.toLowerCase() === String(t || "").trim().toLowerCase());
   return i < 0 ? 0 : i;
@@ -24,7 +32,7 @@ function toISO(v) {
 const s = (v) => String(v == null ? "" : v).trim();
 
 export async function parseCongNoExcel(arrayBuffer) {
-  const XLSX = (await import("xlsx")).default;
+  const XLSX = await loadXLSX();
   const wb = XLSX.read(arrayBuffer, { cellDates: true });
   const rowsOf = (name) => XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: "" });
   const warnings = [];
@@ -109,7 +117,7 @@ const isSheetTongHop = (n) => {
 
 // Liệt kê các sheet công trình trong file (để người dùng chọn công trình nào cần đọc)
 export async function listContractSheets(arrayBuffer) {
-  const XLSX = (await import("xlsx")).default;
+  const XLSX = await loadXLSX();
   const wb = XLSX.read(arrayBuffer, { bookSheets: true });
   return wb.SheetNames.filter((n) => !isSheetTongHop(n));
 }
@@ -119,7 +127,7 @@ export async function listContractSheets(arrayBuffer) {
 // Dùng khi thêm HĐ mới: chỉ điền form + tạo đợt, KHÔNG xóa dữ liệu cũ.
 // pick = tên sheet muốn đọc (bỏ trống = sheet công trình đầu tiên).
 export async function parseOneContract(arrayBuffer, pick = "") {
-  const XLSX = (await import("xlsx")).default;
+  const XLSX = await loadXLSX();
   const wb = XLSX.read(arrayBuffer, { cellDates: true });
   const rowsOf = (name) => XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: "" });
   const warnings = [];

@@ -1,5 +1,5 @@
 // Tiện ích dùng chung cho Kho lưu trữ & Theo dõi công nợ (trước đây copy ở 2 nơi).
-import { outstanding, daysLate, arisen } from "./models";
+import { outstanding, daysLate, arisen } from "./models.js";
 
 // Tạo id khách hàng từ tên (bỏ dấu, gạch nối).
 export const slug = (s) =>

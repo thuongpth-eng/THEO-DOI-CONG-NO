@@ -1,7 +1,7 @@
 // Đọc file Excel công nợ (định dạng chuẩn app: sheet "DANH SÁCH CÔNG TRÌNH" + mỗi công trình 1 sheet)
 // → trả { customers, contracts, installments, warnings }. Tự nhận diện cột.
-import { STATUS_NAMES } from "./models";
-import { slug } from "./contractsUtil";
+import { STATUS_NAMES } from "./models.js";
+import { slug } from "./contractsUtil.js";
 
 const statusIdx = (t) => {
   const i = STATUS_NAMES.findIndex((s) => s.toLowerCase() === String(t || "").trim().toLowerCase());
@@ -99,41 +99,71 @@ export async function parseCongNoExcel(arrayBuffer) {
   return { customers, contracts, installments, warnings };
 }
 
+const isSheetTongHop = (n) => {
+  const up = n.toUpperCase().replace(/\s/g, "");
+  return (
+    up.includes("TỔNGQUAN".toUpperCase()) || up.includes("TONGQUAN") ||
+    up.includes("DANHSÁCH".toUpperCase()) || up.includes("DANHSACH")
+  );
+};
+
+// Liệt kê các sheet công trình trong file (để người dùng chọn công trình nào cần đọc)
+export async function listContractSheets(arrayBuffer) {
+  const XLSX = (await import("xlsx")).default;
+  const wb = XLSX.read(arrayBuffer, { bookSheets: true });
+  return wb.SheetNames.filter((n) => !isSheetTongHop(n));
+}
+
 // Đọc file công nợ của MỘT hợp đồng (mẫu chuẩn app: 1 sheet công trình = khối thông tin + bảng "Đợt")
-// → trả { contract: {các trường điền sẵn}, installments: [...], warnings }.
+// → trả { contract, installments, sheets, sheetName, warnings }.
 // Dùng khi thêm HĐ mới: chỉ điền form + tạo đợt, KHÔNG xóa dữ liệu cũ.
-export async function parseOneContract(arrayBuffer) {
+// pick = tên sheet muốn đọc (bỏ trống = sheet công trình đầu tiên).
+export async function parseOneContract(arrayBuffer, pick = "") {
   const XLSX = (await import("xlsx")).default;
   const wb = XLSX.read(arrayBuffer, { cellDates: true });
   const rowsOf = (name) => XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: "" });
   const warnings = [];
 
-  // Chọn sheet công trình đầu tiên (bỏ TỔNG QUAN / DANH SÁCH)
-  const sheetName = wb.SheetNames.find((n) => {
-    const up = n.toUpperCase().replace(/\s/g, "");
-    return (
-      !up.includes("TỔNGQUAN".toUpperCase()) && !up.includes("TONGQUAN") &&
-      !up.includes("DANHSÁCH".toUpperCase()) && !up.includes("DANHSACH")
-    );
-  });
-  if (!sheetName)
-    return { contract: null, installments: [], warnings: ["Không tìm thấy sheet công trình trong file. File phải theo mẫu chuẩn của app."] };
+  const sheets = wb.SheetNames.filter((n) => !isSheetTongHop(n));
+  if (!sheets.length)
+    return { contract: null, installments: [], sheets: [], sheetName: "", warnings: ["Không tìm thấy sheet công trình trong file. File phải theo mẫu chuẩn của app."] };
 
+  const sheetName = sheets.includes(pick) ? pick : sheets[0];
   const rows = rowsOf(sheetName);
   const info = {};
   for (const r of rows) if (r[0] && r[1] !== "") info[s(r[0])] = r[1];
 
   const code = s(info["Số hợp đồng"]) || sheetName.replace(/^\d+-/, "");
+
+  // Sheet công trình không chứa Chủ đầu tư → tra thêm ở sheet "DANH SÁCH CÔNG TRÌNH" theo số HĐ
+  let cdt = s(info["Chủ đầu tư"]);
+  let tenNgan = "";
+  const dsName = wb.SheetNames.find((n) => {
+    const up = n.toUpperCase().replace(/\s/g, "");
+    return up.includes("DANHSÁCH".toUpperCase()) || up.includes("DANHSACH");
+  });
+  if (dsName) {
+    const ds = rowsOf(dsName);
+    const hit = ds.find((r) => s(r[1]) && s(r[1]) === code);
+    if (hit) {
+      tenNgan = s(hit[2]);
+      if (!cdt) cdt = s(hit[3]);
+    }
+  }
+
   const contract = {
     code,
-    name: s(info["Công trình"]) || sheetName.replace(/^\d+-/, ""),
-    customerName: s(info["Chủ đầu tư"]),
+    // Tên ngắn (HOWELL) chứ không lấy tên dài; tên dài để riêng ở fullName
+    name: tenNgan || sheetName.replace(/^\d+-/, ""),
+    fullName: s(info["Công trình"]),
+    customerName: cdt,
     totalAfterTax: num(info["Giá trị hợp đồng"]),
     work: s(info["Hạng mục"]),
     loc: s(info["Địa điểm"]),
     ngayKy: toISO(info["Ngày ký"]),
     nguoiPhuTrach: s(info["Người phụ trách"]),
   };
+  if (!cdt) warnings.push("File không có tên Chủ đầu tư — Sếp nhập tay giúp.");
 
   const installments = [];
   const dh = rows.findIndex((r) => s(r[0]) === "Đợt");
@@ -147,6 +177,7 @@ export async function parseOneContract(arrayBuffer) {
         dot: d0, noidung: s(r[1]), hoso: s(r[2]), status: statusIdx(r[3]),
         value: num(r[8]), paid: num(r[9]),
         ngayGuiHS: toISO(r[5]), ngayXuatHD: toISO(r[6]), ngayDenHan: toISO(r[7]), ngayTT: toISO(r[10]),
+        duKienHD: toISO(r[14]), duKienQLDA: toISO(r[15]), duKienCDT: toISO(r[16]),
         ghichu: s(r[17]), order: ++o,
       });
     }
@@ -154,5 +185,5 @@ export async function parseOneContract(arrayBuffer) {
     warnings.push(`Sheet "${sheetName}" không có bảng đợt (thiếu dòng tiêu đề "Đợt").`);
   }
 
-  return { contract, installments, warnings };
+  return { contract, installments, sheets, sheetName, warnings };
 }

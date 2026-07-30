@@ -107,6 +107,9 @@ const emptyForm = {
   totalAfterTax: "",
   maDuAn: "",
   loai: "Hợp đồng",
+  fullName: "", // tên đầy đủ công trình (đọc từ file công nợ)
+  ngayKy: "",
+  nguoiPhuTrach: "",
 };
 
 const STATUS_OPTS = STATUS_NAMES.map((n, i) => ({ value: i, label: n }));
@@ -165,6 +168,9 @@ export default function Tracking({ summary = false, embedded = false }) {
   const [editCt, setEditCt] = useState(null); // id hợp đồng đang sửa (null = thêm mới)
   const [preDots, setPreDots] = useState([]); // các đợt đọc được từ file công nợ (chờ Lưu)
   const [reading, setReading] = useState("");
+  const [fileBuf, setFileBuf] = useState(null); // giữ file đã úp để đổi công trình
+  const [sheets, setSheets] = useState([]); // danh sách công trình trong file
+  const [pickSheet, setPickSheet] = useState("");
   const [custModal, setCustModal] = useState(false);
   const [custName, setCustName] = useState("");
   const [custSaving, setCustSaving] = useState(false);
@@ -194,6 +200,9 @@ export default function Tracking({ summary = false, embedded = false }) {
     setEditCt(null);
     setPreDots([]);
     setReading("");
+    setFileBuf(null);
+    setSheets([]);
+    setPickSheet("");
     setForm({ ...emptyForm, ...preset });
     setModal(true);
   }
@@ -203,32 +212,46 @@ export default function Tracking({ summary = false, embedded = false }) {
     if (!file) return;
     setReading("Đang đọc file…");
     try {
-      const { parseOneContract } = await import("../lib/importExcel");
       const buf = await file.arrayBuffer();
-      const { contract: c, installments: dots, warnings } = await parseOneContract(buf);
-      if (!c) {
-        setReading("");
-        return alert(warnings[0] || "Không đọc được file.");
-      }
-      setForm((f) => ({
-        ...f,
-        name: c.name || f.name,
-        code: c.code || f.code,
-        totalAfterTax: c.totalAfterTax || f.totalAfterTax,
-        work: c.work || f.work,
-        loc: c.loc || f.loc,
-        // CĐT: chọn nếu đã có, chưa có thì điền vào ô "nhập mới"
-        customerName: customers.some((x) => x.name === c.customerName) ? c.customerName : f.customerName,
-        newCustomer: customers.some((x) => x.name === c.customerName) ? f.newCustomer : c.customerName || f.newCustomer,
-      }));
-      setPreDots(dots);
-      setReading(
-        `Đã đọc: ${dots.length} đợt${warnings.length ? " · " + warnings.join("; ") : ""}`
-      );
+      setFileBuf(buf);
+      await applySheet(buf, "");
     } catch (e) {
       setReading("");
       alert("Lỗi đọc file: " + (e?.message || e));
     }
+  }
+
+  // Đọc 1 công trình (sheet) trong file đã úp → điền vào form
+  async function applySheet(buf, pick) {
+    const { parseOneContract } = await import("../lib/importExcel");
+    const { contract: c, installments: dots, sheets: sh, sheetName, warnings } =
+      await parseOneContract(buf, pick);
+    setSheets(sh || []);
+    setPickSheet(sheetName || "");
+    if (!c) {
+      setReading("");
+      setPreDots([]);
+      return alert(warnings[0] || "Không đọc được file.");
+    }
+    const coSan = customers.some((x) => x.name === c.customerName);
+    setForm((f) => ({
+      ...f,
+      name: c.name || f.name,
+      code: c.code || f.code,
+      totalAfterTax: c.totalAfterTax || f.totalAfterTax,
+      work: c.work || f.work,
+      loc: c.loc || f.loc,
+      fullName: c.fullName || f.fullName,
+      ngayKy: c.ngayKy || f.ngayKy,
+      nguoiPhuTrach: c.nguoiPhuTrach || f.nguoiPhuTrach,
+      // CĐT: chọn nếu đã có trong danh sách, chưa có thì điền vào ô "nhập mới"
+      customerName: coSan ? c.customerName : "",
+      newCustomer: coSan ? "" : c.customerName || "",
+    }));
+    setPreDots(dots);
+    setReading(
+      `Đã đọc "${sheetName}": ${dots.length} đợt${warnings.length ? " · ⚠ " + warnings.join("; ") : ""}`
+    );
   }
 
   // Mở form sửa 1 hợp đồng đã có
@@ -244,6 +267,9 @@ export default function Tracking({ summary = false, embedded = false }) {
       totalAfterTax: c.totalAfterTax || "",
       maDuAn: c.maDuAn || "",
       loai: c.loai || "Hợp đồng",
+      fullName: c.fullName || "",
+      ngayKy: c.ngayKy || "",
+      nguoiPhuTrach: c.nguoiPhuTrach || "",
     });
     setModal(true);
   }
@@ -286,6 +312,9 @@ export default function Tracking({ summary = false, embedded = false }) {
       maDuAn: form.maDuAn.trim(),
       group: form.name.trim(),
       loai: form.loai || "Hợp đồng",
+      fullName: form.fullName || "",
+      ngayKy: form.ngayKy || "",
+      nguoiPhuTrach: form.nguoiPhuTrach || "",
       updatedAt: nowISO(),
       updatedBy: user?.name || "",
     };
@@ -297,12 +326,13 @@ export default function Tracking({ summary = false, embedded = false }) {
       if (preDots.length && created?.id) {
         for (const d of preDots) {
           await api.addInstallment({
+            duKienHD: "", duKienQLDA: "", duKienCDT: "",
             ...d,
             contractId: created.id,
             contractName: payload.name,
             customerId,
-            duKienHD: "", duKienQLDA: "", duKienCDT: "",
-            nguoiPhuTrach: "", hanTT: 0, files: [], history: [],
+            nguoiPhuTrach: form.nguoiPhuTrach || "",
+            hanTT: 0, files: [], history: [],
             updatedAt: nowISO(),
             updatedBy: user?.name || "Nhập Excel",
           });
@@ -846,6 +876,21 @@ export default function Tracking({ summary = false, embedded = false }) {
                 />
               </label>
             </div>
+            {sheets.length > 1 && (
+              <div className="mt-2">
+                <div className="mb-1 text-[11px] font-semibold uppercase text-faint">
+                  File có {sheets.length} công trình — chọn công trình cần lấy
+                </div>
+                <Select
+                  value={pickSheet}
+                  onChange={(e) => fileBuf && applySheet(fileBuf, e.target.value)}
+                >
+                  {sheets.map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </Select>
+              </div>
+            )}
             {reading && (
               <div className="mt-2 text-xs font-medium text-brand-600">{reading}</div>
             )}

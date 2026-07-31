@@ -107,6 +107,7 @@ const emptyForm = {
   totalAfterTax: "",
   maDuAn: "",
   loai: "Hợp đồng",
+  nam: "", // năm quản lý (để trống = tự lấy từ số HĐ / ngày ký)
   fullName: "", // tên đầy đủ công trình (đọc từ file công nợ)
   ngayKy: "",
   nguoiPhuTrach: "",
@@ -168,6 +169,9 @@ export default function Tracking({ summary = false, embedded = false }) {
   const [editCt, setEditCt] = useState(null); // id hợp đồng đang sửa (null = thêm mới)
   const [preDots, setPreDots] = useState([]); // các đợt đọc được từ file công nợ (chờ Lưu)
   const [reading, setReading] = useState("");
+  const [extraYears, setExtraYears] = useState([]); // năm do người dùng thêm (chưa có HĐ nào)
+  const [yearModal, setYearModal] = useState(null); // { mode: 'add' | 'edit', value }
+  const [yearBusy, setYearBusy] = useState(false);
   const [fileBuf, setFileBuf] = useState(null); // giữ file đã úp để đổi công trình
   const [sheets, setSheets] = useState([]); // danh sách công trình trong file
   const [pickSheet, setPickSheet] = useState("");
@@ -267,11 +271,44 @@ export default function Tracking({ summary = false, embedded = false }) {
       totalAfterTax: c.totalAfterTax || "",
       maDuAn: c.maDuAn || "",
       loai: c.loai || "Hợp đồng",
+      nam: c.nam || "",
       fullName: c.fullName || "",
       ngayKy: c.ngayKy || "",
       nguoiPhuTrach: c.nguoiPhuTrach || "",
     });
     setModal(true);
+  }
+
+  // Thêm năm mới (hiện thẻ năm để thêm HĐ vào) hoặc đổi năm cho các HĐ đang ở năm đó
+  async function saveYear() {
+    const y = String(yearModal?.value || "").trim();
+    if (!/^\d{4}$/.test(y)) return alert("Năm phải là 4 chữ số, ví dụ 2027.");
+    if (yearModal.mode === "add") {
+      setExtraYears((p) => (p.includes(y) ? p : [...p, y]));
+      setYear(y);
+      setYearModal(null);
+      return;
+    }
+    // Đổi năm: gán trường "nam" cho mọi hợp đồng đang ở năm hiện tại
+    const list = enriched.filter((c) => c.year === activeYear);
+    if (
+      !window.confirm(
+        `Chuyển ${list.length} hợp đồng từ năm ${activeYear} sang năm ${y}?\n(Chỉ đổi năm quản lý, không đổi số hợp đồng.)`
+      )
+    )
+      return;
+    setYearBusy(true);
+    try {
+      for (const c of list)
+        await api.updateContract(c.id, { nam: y, updatedAt: nowISO(), updatedBy: user?.name || "" });
+      setYear(y);
+      setYearModal(null);
+      await reload();
+    } catch (e) {
+      alert("Không đổi được năm: " + (e?.message || e));
+    } finally {
+      setYearBusy(false);
+    }
   }
 
   // Xóa 1 hợp đồng + toàn bộ đợt của nó
@@ -312,6 +349,7 @@ export default function Tracking({ summary = false, embedded = false }) {
       maDuAn: form.maDuAn.trim(),
       group: form.name.trim(),
       loai: form.loai || "Hợp đồng",
+      nam: /^\d{4}$/.test(String(form.nam).trim()) ? String(form.nam).trim() : "",
       fullName: form.fullName || "",
       ngayKy: form.ngayKy || "",
       nguoiPhuTrach: form.nguoiPhuTrach || "",
@@ -478,9 +516,9 @@ export default function Tracking({ summary = false, embedded = false }) {
   );
 
   const years = useMemo(() => {
-    const ys = [...new Set(enriched.map((c) => c.year))];
+    const ys = [...new Set([...enriched.map((c) => c.year), ...extraYears])];
     return ys.sort((a, b) => String(b).localeCompare(String(a)));
-  }, [enriched]);
+  }, [enriched, extraYears]);
   const activeYear = year && years.includes(year) ? year : years[0];
 
   if (loading) return <LoadingState />;
@@ -635,7 +673,7 @@ export default function Tracking({ summary = false, embedded = false }) {
           <span className="text-xs text-navdim">
             {byCus.size} công ty · {inYear.length} hợp đồng/phụ lục
           </span>
-          <div className="flex gap-1">
+          <div className="flex flex-wrap items-center gap-1">
             {years.map((y) => (
               <button
                 key={y}
@@ -647,6 +685,26 @@ export default function Tracking({ summary = false, embedded = false }) {
                 {y}
               </button>
             ))}
+            {canEdit && (
+              <>
+                <button
+                  onClick={() => setYearModal({ mode: "add", value: "" })}
+                  title="Thêm năm mới"
+                  className="ml-1 flex items-center gap-1 rounded-md border border-white/20 px-2 py-1 text-xs font-bold text-navdim hover:bg-navhover hover:text-navfg"
+                >
+                  <Plus size={13} /> Thêm năm
+                </button>
+                {inYear.length > 0 && (
+                  <button
+                    onClick={() => setYearModal({ mode: "edit", value: activeYear })}
+                    title={`Đổi năm cho ${inYear.length} hợp đồng đang ở năm ${activeYear}`}
+                    className="rounded-md border border-white/20 px-2 py-1 text-xs font-bold text-navdim hover:bg-navhover hover:text-navfg"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </div>
         <div className="text-right text-xs">
@@ -936,6 +994,12 @@ export default function Tracking({ summary = false, embedded = false }) {
           <Field label="Mã dự án">
             <Input value={form.maDuAn} onChange={set("maDuAn")} placeholder="HW-VSIP3" />
           </Field>
+          <Field
+            label="Năm quản lý"
+            hint="Để trống = tự lấy theo số HĐ / ngày ký. Nhập 4 số để xếp vào năm khác."
+          >
+            <Input value={form.nam} onChange={set("nam")} placeholder="2026" maxLength={4} />
+          </Field>
           <Field label="Chọn chủ đầu tư có sẵn">
             <Select value={form.customerName} onChange={set("customerName")}>
               <option value="">— Chọn —</option>
@@ -961,6 +1025,37 @@ export default function Tracking({ summary = false, embedded = false }) {
             </Field>
           </div>
         </div>
+      </Modal>
+
+      {/* Modal thêm / đổi năm */}
+      <Modal
+        open={!!yearModal}
+        onClose={() => setYearModal(null)}
+        title={yearModal?.mode === "add" ? "Thêm năm mới" : `Đổi năm cho các hợp đồng năm ${activeYear}`}
+        footer={
+          <>
+            <Btn variant="ghost" onClick={() => setYearModal(null)}>Hủy</Btn>
+            <Btn onClick={saveYear} disabled={yearBusy}>
+              {yearBusy ? "Đang lưu…" : yearModal?.mode === "add" ? "Thêm năm" : "Đổi năm"}
+            </Btn>
+          </>
+        }
+      >
+        <Field
+          label="Năm (4 chữ số) *"
+          hint={
+            yearModal?.mode === "add"
+              ? "Thẻ năm sẽ hiện ngay để Sếp thêm hợp đồng vào. Năm trống sẽ tự mất khi tải lại nếu chưa có hợp đồng nào."
+              : `Tất cả ${inYear.length} hợp đồng đang ở năm ${activeYear} sẽ chuyển sang năm mới.`
+          }
+        >
+          <Input
+            value={yearModal?.value || ""}
+            onChange={(e) => setYearModal((m) => ({ ...m, value: e.target.value }))}
+            placeholder="2027"
+            maxLength={4}
+          />
+        </Field>
       </Modal>
 
       {/* Modal thêm khách hàng */}
@@ -1214,9 +1309,6 @@ function TrackTable({ rows, canEdit, onField, onDel, onEdit }) {
                     <div className="text-right tabular-nums">{fmtVND(r.paid)}</div>
                   ) : (
                     <MoneyCell value={r.paid} onSave={(v) => onField(r, { paid: v })} />
-                  )}
-                  {(r.paid || 0) > 0 && (
-                    <div className="px-2 text-right text-[10px] italic text-faint">{docSoVND(r.paid)}</div>
                   )}
                 </td>
                 <td className="px-1 py-1">

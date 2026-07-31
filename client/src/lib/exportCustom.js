@@ -45,10 +45,20 @@ export const DEFAULT_FIELDS = [
 ];
 
 export const MOC_NGAY = [
+  { key: "", label: "Không lọc theo ngày (toàn bộ)" },
   { key: "ngayDenHan", label: "Ngày đến hạn" },
   { key: "ngayXuatHD", label: "Ngày xuất hóa đơn" },
   { key: "ngayTT", label: "Ngày thực thu" },
+  { key: "ngayGuiHS", label: "Ngày gửi hồ sơ" },
 ];
+
+// dd/mm/yyyy từ yyyy-mm-dd
+export const ddmmyyyy = (iso) => {
+  const s = String(iso || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return "";
+  const [y, m, d] = s.split("-");
+  return `${d}/${m}/${y}`;
+};
 
 // Lọc danh sách đợt theo bộ tiêu chí
 export function filterRows(installments, contracts, f) {
@@ -58,13 +68,13 @@ export function filterRows(installments, contracts, f) {
     if (f.customers?.length && !f.customers.includes(c?.customerName || "")) return false;
     if (f.contracts?.length && !f.contracts.includes(r.contractId)) return false;
 
-    // Khoảng tháng (yyyy-mm) theo mốc ngày đã chọn
-    if (f.tuThang || f.denThang) {
-      const d = String(r[f.mocNgay || "ngayDenHan"] || "").slice(0, 7);
+    // Khoảng ngày (yyyy-mm-dd) theo mốc ngày đã chọn. Mốc rỗng = không lọc theo ngày.
+    if (f.mocNgay && (f.tuNgay || f.denNgay)) {
+      const d = String(r[f.mocNgay] || "").slice(0, 10);
       // Đợt chưa có ngày: chỉ giữ khi người dùng tích "kèm đợt chưa có ngày"
       if (!d) return !!f.kemChuaCoNgay;
-      if (f.tuThang && d < f.tuThang) return false;
-      if (f.denThang && d > f.denThang) return false;
+      if (f.tuNgay && d < f.tuNgay) return false;
+      if (f.denNgay && d > f.denNgay) return false;
     }
 
     const os = outstanding(r);
@@ -181,9 +191,11 @@ export async function exportCustomExcel(contracts, installments, f, opts = {}) {
 
 function moTaLoc(f, contracts, soDong, by) {
   const parts = [];
-  const moc = MOC_NGAY.find((m) => m.key === (f.mocNgay || "ngayDenHan"))?.label;
-  if (f.tuThang || f.denThang)
-    parts.push(`Kỳ: ${f.tuThang || "…"} → ${f.denThang || "…"} (theo ${moc})`);
+  const moc = MOC_NGAY.find((m) => m.key === f.mocNgay)?.label;
+  if (f.mocNgay && (f.tuNgay || f.denNgay))
+    parts.push(
+      `Kỳ: ${ddmmyyyy(f.tuNgay) || "…"} → ${ddmmyyyy(f.denNgay) || "…"} (theo ${moc})`
+    );
   if (f.customers?.length) parts.push(`CĐT: ${f.customers.join(", ")}`);
   if (f.contracts?.length) {
     const names = contracts.filter((c) => f.contracts.includes(c.id)).map((c) => c.name);
@@ -200,8 +212,8 @@ function moTaLoc(f, contracts, soDong, by) {
 
 function tenFile(f) {
   const bits = [];
-  if (f.tuThang) bits.push(f.tuThang.replace("-", ""));
-  if (f.denThang && f.denThang !== f.tuThang) bits.push(f.denThang.replace("-", ""));
+  if (f.tuNgay) bits.push(f.tuNgay.replace(/-/g, ""));
+  if (f.denNgay && f.denNgay !== f.tuNgay) bits.push(f.denNgay.replace(/-/g, ""));
   if (f.chiQuaHan) bits.push("QuaHan");
   if (f.chiDenHan) bits.push("DenHan");
   if (!bits.length) bits.push(todayISO().replace(/-/g, ""));

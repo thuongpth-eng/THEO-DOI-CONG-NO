@@ -15,6 +15,8 @@ export const slug = (s) =>
 
 // Lấy năm: ưu tiên số HĐ / mã dự án; nếu không có thì lấy từ Ngày ký (hoặc mốc cập nhật).
 export const yearOf = (c) => {
+  // Năm do người dùng chỉ định (ghi đè) — ưu tiên trước mọi suy luận
+  if (c.nam && /^\d{4}$/.test(String(c.nam))) return String(c.nam);
   const m = (c.code || "").match(/(20\d{2})/) || (c.maDuAn || "").match(/(20\d{2})/);
   if (m) return m[1];
   for (const d of [c.ngayKy, c.updatedAt]) {

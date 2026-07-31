@@ -7,14 +7,15 @@ import {
   MOC_NGAY,
   filterRows,
   exportCustomExcel,
+  ddmmyyyy,
 } from "../lib/exportCustom";
 import { fmtTy, outstanding } from "../lib/models";
 
 // Xuất dữ liệu theo ý muốn: lọc tháng / CĐT / công trình / quá hạn - đến hạn + chọn cột
 export default function ExportModal({ open, onClose, contracts, installments, exportedBy }) {
-  const [tuThang, setTuThang] = useState("");
-  const [denThang, setDenThang] = useState("");
-  const [mocNgay, setMocNgay] = useState("ngayDenHan");
+  const [tuNgay, setTuNgay] = useState("");
+  const [denNgay, setDenNgay] = useState("");
+  const [mocNgay, setMocNgay] = useState(""); // rỗng = xuất toàn bộ, không lọc theo ngày
   const [cus, setCus] = useState([]);
   const [cts, setCts] = useState([]);
   const [chiQuaHan, setQuaHan] = useState(false);
@@ -30,7 +31,38 @@ export default function ExportModal({ open, onClose, contracts, installments, ex
     [contracts]
   );
 
-  const f = { tuThang, denThang, mocNgay, customers: cus, contracts: cts, chiQuaHan, chiDenHan, chiConNo, kemChuaCoNgay, fields };
+  const f = { tuNgay, denNgay, mocNgay, customers: cus, contracts: cts, chiQuaHan, chiDenHan, chiConNo, kemChuaCoNgay, fields };
+
+  // Đặt nhanh khoảng ngày
+  const iso = (d) => {
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  };
+  function datKy(loai) {
+    const n = new Date();
+    if (loai === "all") {
+      setMocNgay(""); setTuNgay(""); setDenNgay("");
+      return;
+    }
+    if (!mocNgay) setMocNgay("ngayDenHan");
+    if (loai === "thang") {
+      setTuNgay(iso(new Date(n.getFullYear(), n.getMonth(), 1)));
+      setDenNgay(iso(new Date(n.getFullYear(), n.getMonth() + 1, 0)));
+    } else if (loai === "quy") {
+      const q = Math.floor(n.getMonth() / 3);
+      setTuNgay(iso(new Date(n.getFullYear(), q * 3, 1)));
+      setDenNgay(iso(new Date(n.getFullYear(), q * 3 + 3, 0)));
+    } else if (loai === "nam") {
+      setTuNgay(`${n.getFullYear()}-01-01`);
+      setDenNgay(`${n.getFullYear()}-12-31`);
+    }
+  }
+
+  // Bỏ hết điều kiện lọc → xuất toàn bộ
+  function xoaLoc() {
+    setMocNgay(""); setTuNgay(""); setDenNgay("");
+    setCus([]); setCts([]); setQuaHan(false); setDenHan(false); setConNo(false); setKem(false);
+  }
 
   // Xem trước số dòng & số tiền sẽ xuất
   const preview = useMemo(() => {
@@ -42,7 +74,7 @@ export default function ExportModal({ open, onClose, contracts, installments, ex
       os: rows.reduce((s, r) => s + outstanding(r), 0),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [installments, contracts, tuThang, denThang, mocNgay, cus, cts, chiQuaHan, chiDenHan, chiConNo, kemChuaCoNgay]);
+  }, [installments, contracts, tuNgay, denNgay, mocNgay, cus, cts, chiQuaHan, chiDenHan, chiConNo, kemChuaCoNgay]);
 
   const toggle = (arr, set, v) =>
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
@@ -80,33 +112,54 @@ export default function ExportModal({ open, onClose, contracts, installments, ex
       <div className="space-y-4">
         {/* Bộ lọc */}
         <Box icon={Filter} title="Phạm vi dữ liệu">
+          <div className="mb-3 flex flex-wrap gap-2">
+            <Chk on={!mocNgay} set={() => datKy("all")} label="Xuất toàn bộ (không lọc ngày)" />
+            <Mini onClick={() => datKy("thang")}>Tháng này</Mini>
+            <Mini onClick={() => datKy("quy")}>Quý này</Mini>
+            <Mini onClick={() => datKy("nam")}>Năm nay</Mini>
+          </div>
+
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <L label="Từ tháng">
-              <input type="month" value={tuThang} onChange={(e) => setTuThang(e.target.value)} className={INP} />
-            </L>
-            <L label="Đến tháng">
-              <input type="month" value={denThang} onChange={(e) => setDenThang(e.target.value)} className={INP} />
-            </L>
-            <L label="Tính theo mốc">
+            <L label="Tính theo mốc ngày">
               <select value={mocNgay} onChange={(e) => setMocNgay(e.target.value)} className={INP}>
                 {MOC_NGAY.map((m) => (
                   <option key={m.key} value={m.key}>{m.label}</option>
                 ))}
               </select>
             </L>
+            <L label="Từ ngày">
+              <input
+                type="date"
+                value={tuNgay}
+                disabled={!mocNgay}
+                onChange={(e) => setTuNgay(e.target.value)}
+                className={`${INP} ${!mocNgay ? "opacity-50" : ""}`}
+              />
+            </L>
+            <L label="Đến ngày">
+              <input
+                type="date"
+                value={denNgay}
+                disabled={!mocNgay}
+                onChange={(e) => setDenNgay(e.target.value)}
+                className={`${INP} ${!mocNgay ? "opacity-50" : ""}`}
+              />
+            </L>
           </div>
           <p className="mt-1 text-[11px] italic text-faint">
-            Để trống 2 ô tháng = lấy tất cả thời gian. Nhiều đợt chưa có ngày đến hạn — nếu lọc theo
-            tháng mà muốn giữ các đợt đó, tích “Kèm đợt chưa có ngày”.
+            {mocNgay
+              ? `Đang lấy: ${ddmmyyyy(tuNgay) || "đầu kỳ"} → ${ddmmyyyy(denNgay) || "cuối kỳ"} theo ${
+                  MOC_NGAY.find((m) => m.key === mocNgay)?.label
+                }. Nhiều đợt chưa có ngày — muốn giữ thì tích “Kèm đợt chưa có ngày”.`
+              : "Đang lấy toàn bộ dữ liệu, không giới hạn thời gian."}
           </p>
 
           <div className="mt-3 flex flex-wrap gap-2">
             <Chk on={chiQuaHan} set={setQuaHan} label="Chỉ công nợ QUÁ HẠN" tone="danger" />
             <Chk on={chiDenHan} set={setDenHan} label="Chỉ công nợ ĐẾN HẠN" tone="warning" />
             <Chk on={chiConNo} set={setConNo} label="Chỉ đợt còn phải thu" />
-            {(tuThang || denThang) && (
-              <Chk on={kemChuaCoNgay} set={setKem} label="Kèm đợt chưa có ngày" />
-            )}
+            {mocNgay && <Chk on={kemChuaCoNgay} set={setKem} label="Kèm đợt chưa có ngày" />}
+            <Mini onClick={xoaLoc}>Bỏ hết bộ lọc</Mini>
           </div>
 
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">

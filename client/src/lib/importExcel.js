@@ -27,9 +27,85 @@ function toISO(v) {
     const p = (n) => String(n).padStart(2, "0");
     return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
   }
-  return String(v);
+  const t = String(v).trim();
+  // Chuỗi dd/mm/yyyy (hoặc d/m/yyyy, có thể kèm giờ) → yyyy-mm-dd
+  const m = t.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+  if (m) {
+    const p = (n) => String(n).padStart(2, "0");
+    return `${m[3]}-${p(m[2])}-${p(m[1])}`;
+  }
+  // Chuỗi yyyy-mm-dd (có thể kèm giờ)
+  const iso = t.match(/^(\d{4}-\d{2}-\d{2})/);
+  return iso ? iso[1] : t;
 }
 const s = (v) => String(v == null ? "" : v).trim();
+
+// Bỏ dấu + hạ chữ để so tên cột
+const norm = (v) =>
+  s(v)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/\s+/g, " ");
+
+// Dò vị trí cột theo TÊN trong dòng tiêu đề → đọc được cả mẫu cũ và mẫu mới
+// (thứ tự trong mảng = thứ tự ưu tiên khi khớp).
+const COL_MATCH = {
+  dot: ["dot"],
+  noidung: ["noi dung"],
+  hoso: ["ho so yeu cau", "ho so"],
+  status: ["trang thai ho so", "trang thai"],
+  value: ["gia tri dot", "gia tri"],
+  paid: ["tt thuc te", "da thu"],
+  os: ["con lai"],
+  ngayTT: ["ngay thuc thu"],
+  ngayGuiHS: ["ngay gui hs", "ngay gui ho so"],
+  ngayXuatHD: ["ngay xuat hoa don", "ngay xuat hd"],
+  hanTT: ["so ngay tt theo hd", "so ngay tt"],
+  ngayDenHan: ["ngay den han tt", "ngay den han", "ngay theo hd"],
+  duKienQLDA: ["du kien thu qlda"],
+  duKienCDT: ["du kien thu cdt"],
+  ghichu: ["ghi chu"],
+};
+
+function mapCols(headerRow) {
+  const heads = headerRow.map((h) => norm(h));
+  const used = new Set();
+  const map = {};
+  for (const [key, pats] of Object.entries(COL_MATCH)) {
+    for (const p of pats) {
+      const i = heads.findIndex((h, idx) => h && !used.has(idx) && h.includes(p));
+      if (i >= 0) {
+        map[key] = i;
+        used.add(i);
+        break;
+      }
+    }
+  }
+  return map;
+}
+
+// Đọc 1 dòng đợt theo bản đồ cột
+function readDotRow(r, map) {
+  const at = (k) => (map[k] != null ? r[map[k]] : "");
+  return {
+    dot: s(at("dot")),
+    noidung: s(at("noidung")),
+    hoso: s(at("hoso")),
+    status: statusIdx(at("status")),
+    value: num(at("value")),
+    paid: num(at("paid")),
+    ngayGuiHS: toISO(at("ngayGuiHS")),
+    ngayXuatHD: toISO(at("ngayXuatHD")),
+    ngayDenHan: toISO(at("ngayDenHan")),
+    ngayTT: toISO(at("ngayTT")),
+    hanTT: Number(num(at("hanTT"))) || 0,
+    duKienQLDA: toISO(at("duKienQLDA")),
+    duKienCDT: toISO(at("duKienCDT")),
+    ghichu: s(at("ghichu")),
+  };
+}
 
 export async function parseCongNoExcel(arrayBuffer) {
   const XLSX = await loadXLSX();
@@ -79,6 +155,7 @@ export async function parseCongNoExcel(arrayBuffer) {
     });
     const dh = rows.findIndex((r) => s(r[0]) === "Đợt");
     if (dh >= 0) {
+      const map = mapCols(rows[dh]);
       let o = 0;
       for (let i = dh + 1; i < rows.length; i++) {
         const r = rows[i];
@@ -86,11 +163,9 @@ export async function parseCongNoExcel(arrayBuffer) {
         if (!d0 || d0.startsWith("TỔNG")) continue;
         installments.push({
           id: cid + "_d" + (++o), contractId: cid, contractName: base.name, customerId: slug(base.customerName),
-          dot: d0, noidung: s(r[1]), hoso: s(r[2]), status: statusIdx(r[3]),
-          value: num(r[8]), paid: num(r[9]),
-          ngayGuiHS: toISO(r[5]), ngayXuatHD: toISO(r[6]), ngayDenHan: toISO(r[7]), ngayTT: toISO(r[10]),
-          duKienHD: "", duKienQLDA: "", duKienCDT: "",
-          ghichu: s(r[17]), nguoiPhuTrach: nguoi, hanTT: 0, order: o,
+          ...readDotRow(r, map),
+          duKienHD: "",
+          nguoiPhuTrach: nguoi, order: o,
           updatedAt: new Date().toISOString(), updatedBy: "Nhập Excel",
         });
       }
@@ -176,18 +251,13 @@ export async function parseOneContract(arrayBuffer, pick = "") {
   const installments = [];
   const dh = rows.findIndex((r) => s(r[0]) === "Đợt");
   if (dh >= 0) {
+    const map = mapCols(rows[dh]);
     let o = 0;
     for (let i = dh + 1; i < rows.length; i++) {
       const r = rows[i];
       const d0 = s(r[0]);
       if (!d0 || d0.startsWith("TỔNG")) continue;
-      installments.push({
-        dot: d0, noidung: s(r[1]), hoso: s(r[2]), status: statusIdx(r[3]),
-        value: num(r[8]), paid: num(r[9]),
-        ngayGuiHS: toISO(r[5]), ngayXuatHD: toISO(r[6]), ngayDenHan: toISO(r[7]), ngayTT: toISO(r[10]),
-        duKienHD: toISO(r[14]), duKienQLDA: toISO(r[15]), duKienCDT: toISO(r[16]),
-        ghichu: s(r[17]), order: ++o,
-      });
+      installments.push({ ...readDotRow(r, map), order: ++o });
     }
   } else {
     warnings.push(`Sheet "${sheetName}" không có bảng đợt (thiếu dòng tiêu đề "Đợt").`);

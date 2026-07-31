@@ -366,22 +366,23 @@ export async function exportExcel(contracts, installments, customers = [], opts 
     // Bảng tiến độ thanh toán các đợt
     put(ws, `A${ir}`, "TIẾN ĐỘ THANH TOÁN CÁC ĐỢT", { font: { bold: true, size: 12, color: { argb: GREEN } } });
     ir++;
+    // Thứ tự cột theo mẫu chuẩn của HP CONS
     const dcols = [
       { h: "Đợt", w: 8, c: true },
       { h: "Nội dung cần hoàn thành", w: 30 },
       { h: "Hồ sơ yêu cầu", w: 22 },
-      { h: "Trạng thái hồ sơ", w: 18 },
-      { h: "Trạng thái TT", w: 18 },
-      { h: "Ngày gửi HS", w: 12, c: true },
-      { h: "Ngày xuất HĐ", w: 12, c: true },
-      { h: "Ngày theo HĐ", w: 12, c: true },
+      { h: "% đợt", w: 8, p: true },
       { h: "Giá trị đợt (VNĐ)", w: 16, m: true },
       { h: "TT thực tế (VNĐ)", w: 16, m: true },
-      { h: "Ngày thực thu", w: 12, c: true },
       { h: "Còn lại (VNĐ)", w: 16, m: true },
-      { h: "Công nợ đến hạn (VNĐ)", w: 16, m: true },
+      { h: "Ngày thực thu", w: 12, c: true },
+      { h: "Trạng thái", w: 18 },
+      { h: "Ngày gửi HS", w: 12, c: true },
+      { h: "Ngày xuất hóa đơn", w: 13, c: true },
+      { h: "Số ngày TT theo HĐ", w: 11, c: true },
+      { h: "Ngày đến hạn TT", w: 13, c: true },
+      { h: "Số ngày quá hạn", w: 11, c: true },
       { h: "Quá hạn (VNĐ)", w: 14, m: true },
-      { h: "Dự kiến thu HĐ (VNĐ)", w: 16, m: true },
       { h: "Dự kiến thu QLDA (VNĐ)", w: 16, m: true },
       { h: "Dự kiến thu CĐT (VNĐ)", w: 16, m: true },
       { h: "Ghi chú", w: 28 },
@@ -390,16 +391,30 @@ export async function exportExcel(contracts, installments, customers = [], opts 
     ws.getRow(ir).values = dcols.map((d) => d.h);
     ir++;
     const dt = (v) => (fmtDate(v) === "—" ? "" : fmtDate(v));
+    const tongHD = p.c.totalAfterTax || p.rs.reduce((s, x) => s + (x.value || 0), 0);
     for (const rrow of p.rs) {
       const row = ws.getRow(ir);
       const os = outstanding(rrow);
-      const payTT = (rrow.paid || 0) <= 0 ? "Chưa thanh toán" : os > 0.5 ? "Thanh toán một phần" : "Đã thanh toán";
+      const late = daysLate(rrow);
       const vals = [
-        rrow.dot, rrow.noidung || "", rrow.hoso || "", statusName(rrow.status), payTT,
-        dt(rrow.ngayGuiHS), dt(rrow.ngayXuatHD), dt(rrow.ngayDenHan),
-        rrow.value || 0, rrow.paid || 0, dt(rrow.ngayTT), os,
-        arisen(rrow) ? os : 0, daysLate(rrow) > 0 ? os : 0,
-        "", "", "", rrow.ghichu || "",
+        rrow.dot,
+        rrow.noidung || "",
+        rrow.hoso || "",
+        tongHD > 0 ? (rrow.value || 0) / tongHD : 0,
+        rrow.value || 0,
+        rrow.paid || 0,
+        os,
+        dt(rrow.ngayTT),
+        statusName(rrow.status),
+        dt(rrow.ngayGuiHS),
+        dt(rrow.ngayXuatHD),
+        Number(rrow.hanTT) || "",
+        dt(rrow.ngayDenHan),
+        late,
+        late > 0 ? os : 0,
+        rrow.duKienQLDA ? dt(rrow.duKienQLDA) : "",
+        rrow.duKienCDT ? dt(rrow.duKienCDT) : "",
+        rrow.ghichu || "",
       ];
       dcols.forEach((d, ci) => {
         const cell = row.getCell(ci + 1);
@@ -407,6 +422,7 @@ export async function exportExcel(contracts, installments, customers = [], opts 
         cell.border = BORDER;
         cell.font = { size: 10 };
         if (d.m) { cell.numFmt = MONEY; cell.alignment = { horizontal: "right" }; }
+        else if (d.p) { cell.numFmt = "0.0%"; cell.alignment = { horizontal: "center" }; }
         else if (d.c) cell.alignment = { horizontal: "center" };
         else cell.alignment = { horizontal: "left", wrapText: true, vertical: "top" };
       });
@@ -416,11 +432,17 @@ export async function exportExcel(contracts, installments, customers = [], opts 
     const tr = ws.getRow(ir);
     const sumV = p.rs.reduce((s, x) => s + (x.value || 0), 0);
     const sumOs = p.rs.reduce((s, x) => s + outstanding(x), 0);
-    const totMap = { 8: sumV, 9: p.paid, 11: sumOs, 12: p.rs.reduce((s, x) => s + (arisen(x) ? outstanding(x) : 0), 0), 13: p.overdue };
+    // Cột: 3=% đợt, 4=Giá trị, 5=TT thực tế, 6=Còn lại, 13=Số ngày quá hạn, 14=Quá hạn
+    const totMap = { 4: sumV, 5: p.paid, 6: sumOs, 14: p.overdue };
     dcols.forEach((d, ci) => {
       const cell = tr.getCell(ci + 1);
       cell.border = BORDER; cell.fill = solid(GREENSOFT); cell.font = { bold: true, size: 10 };
       if (ci === 0) cell.value = "TỔNG";
+      if (ci === 3) {
+        cell.value = tongHD > 0 ? sumV / tongHD : 0;
+        cell.numFmt = "0.0%";
+        cell.alignment = { horizontal: "center" };
+      }
       if (totMap[ci] != null) { cell.value = totMap[ci]; cell.numFmt = MONEY; cell.alignment = { horizontal: "right" }; }
     });
   }

@@ -1218,6 +1218,8 @@ export default function Tracking({ summary = false, embedded = false }) {
 /* Bảng công nợ 1 hợp đồng — nhập trực tiếp trên ô */
 function TrackTable({ rows, canEdit, onField, onDel, onEdit }) {
   const RO = !canEdit;
+  // Tổng giá trị các đợt — để tính "% đợt" như mẫu Excel chuẩn
+  const tongDot = rows.reduce((s, r) => s + (r.value || 0), 0);
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -1226,17 +1228,19 @@ function TrackTable({ rows, canEdit, onField, onDel, onEdit }) {
             <th className="whitespace-nowrap px-3 py-2 font-medium">Đợt</th>
             <th className="min-w-[200px] px-3 py-2 font-medium">Nội dung cần hoàn thành</th>
             <th className="min-w-[150px] px-3 py-2 font-medium">Hồ sơ yêu cầu</th>
-            <th className="min-w-[150px] px-3 py-2 font-medium">Trạng thái hồ sơ</th>
+            <th className="whitespace-nowrap px-3 py-2 text-center font-medium">% đợt</th>
+            <th className="min-w-[150px] px-3 py-2 font-medium">Trạng thái</th>
             <th className="whitespace-nowrap px-3 py-2 font-medium">Trạng thái TT</th>
             <th className="min-w-[130px] px-3 py-2 font-medium">Ngày gửi HS</th>
-            <th className="min-w-[130px] px-3 py-2 font-medium">Ngày xuất HĐ</th>
-            <th className="whitespace-nowrap px-3 py-2 text-center font-medium">Ngày theo HĐ</th>
+            <th className="min-w-[130px] px-3 py-2 font-medium">Ngày xuất hóa đơn</th>
+            <th className="whitespace-nowrap px-3 py-2 text-center font-medium">Số ngày TT theo HĐ</th>
             <th className="whitespace-nowrap px-3 py-2 text-right font-medium">Giá trị đợt</th>
             <th className="whitespace-nowrap px-3 py-2 text-right font-medium">TT thực tế</th>
             <th className="min-w-[130px] px-3 py-2 font-medium">Ngày thực thu</th>
             <th className="whitespace-nowrap px-3 py-2 text-right font-medium">Còn lại</th>
-            <th className="min-w-[130px] px-3 py-2 font-medium">Công nợ đến hạn</th>
-            <th className="whitespace-nowrap px-3 py-2 text-center font-medium">Quá hạn</th>
+            <th className="min-w-[130px] px-3 py-2 font-medium">Ngày đến hạn TT</th>
+            <th className="whitespace-nowrap px-3 py-2 text-center font-medium">Số ngày quá hạn</th>
+            <th className="whitespace-nowrap px-3 py-2 text-right font-medium">Quá hạn (VNĐ)</th>
             <th className="min-w-[130px] px-3 py-2 font-medium">Dự kiến thu HĐ</th>
             <th className="min-w-[130px] px-3 py-2 font-medium">Dự kiến thu QLDA</th>
             <th className="min-w-[130px] px-3 py-2 font-medium">Dự kiến thu CĐT</th>
@@ -1279,6 +1283,9 @@ function TrackTable({ rows, canEdit, onField, onDel, onEdit }) {
                 </td>
                 <td className="px-1 py-1">
                   {RO ? <span className="text-xs text-sub">{r.hoso}</span> : <EditCell value={r.hoso} onSave={(v) => onField(r, { hoso: v })} />}
+                </td>
+                <td className="whitespace-nowrap px-3 py-1 text-center text-xs tabular-nums text-sub">
+                  {tongDot > 0 ? `${(((r.value || 0) / tongDot) * 100).toFixed(1)}%` : "—"}
                 </td>
                 <td className="px-1 py-1">
                   {RO ? (
@@ -1327,6 +1334,13 @@ function TrackTable({ rows, canEdit, onField, onDel, onEdit }) {
                     </span>
                   ) : future ? (
                     <span className="text-[10px] italic text-faint">chưa tới</span>
+                  ) : (
+                    <span className="text-faint">—</span>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-3 py-1 text-right tabular-nums">
+                  {late > 0 ? (
+                    <b className="text-danger">{fmtVND(outstanding(r))}</b>
                   ) : (
                     <span className="text-faint">—</span>
                   )}

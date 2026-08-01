@@ -2,7 +2,7 @@
 // IT điền các khóa này qua biến môi trường (file .env), KHÔNG hard-code.
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { initializeAuth, browserSessionPersistence, getAuth } from "firebase/auth";
 
 const config = {
   apiKey: import.meta.env.VITE_FB_API_KEY,
@@ -25,7 +25,13 @@ export function getFb() {
     }
     const app = initializeApp(config);
     _db = getFirestore(app);
-    _auth = getAuth(app);
+    // Phiên đăng nhập chỉ sống trong tab đang mở: đóng tab/trình duyệt là phải
+    // đăng nhập lại (mặc định của Firebase là lưu vĩnh viễn — ai mở máy cũng vào được).
+    try {
+      _auth = initializeAuth(app, { persistence: browserSessionPersistence });
+    } catch {
+      _auth = getAuth(app);
+    }
   }
   return { db: _db, auth: _auth };
 }

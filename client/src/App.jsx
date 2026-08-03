@@ -10,6 +10,7 @@ import Users from "./pages/Users";
 import Links from "./pages/Links";
 import Login from "./pages/Login";
 import HelpWidget from "./components/HelpWidget";
+import IdleLogout from "./components/IdleLogout";
 import { useAuth } from "./context/AuthContext";
 import { useTheme } from "./context/ThemeContext";
 
@@ -157,6 +158,9 @@ export default function App() {
 
       {/* Nút trợ giúp nhanh + góp ý (góc phải dưới) */}
       <HelpWidget />
+
+      {/* Tự động đăng xuất khi để máy lâu không dùng */}
+      <IdleLogout />
     </div>
   );
 }

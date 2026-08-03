@@ -127,7 +127,7 @@ export default function App() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-4 pb-10 xl:px-6">
+        <main className="flex-1 overflow-y-auto px-4 pb-4 xl:px-6">
           {/* Page Title — trang chủ + Kho lưu trữ tự vẽ tiêu đề riêng */}
           {!ownHeader && (
             <div className="py-4 xl:py-6">

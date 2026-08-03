@@ -148,7 +148,7 @@ export default function Overview({ embedded = false }) {
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-2">
         <FilterBar
           years={years}
           customers={customers}
@@ -162,14 +162,14 @@ export default function Overview({ embedded = false }) {
 
         <KpiCards kpis={kpis} installments={fInstallments} />
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2 xl:grid-cols-4">
           <DebtByCustomer customerData={custData} />
           <DebtStructure kpis={kpis} />
           <CashflowLine installments={fInstallments} />
           <AlertsPanel overdue={overdueRows} dueSoon={dueSoon} />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-4">
           <PriorityProjects projects={priority} className="xl:col-span-2" />
           <AgingBars installments={fInstallments} />
           <TopDebtors customerData={custData} />

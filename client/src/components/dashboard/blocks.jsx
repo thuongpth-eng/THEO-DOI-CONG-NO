@@ -1,4 +1,4 @@
-import {
+﻿import {
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -39,12 +39,12 @@ const ORANGE = "#FFA726";
 
 export function Panel({ title, sub, children, className = "", extra }) {
   return (
-    <section className={`rounded-xl border border-line bg-card p-4 shadow-card ${className}`}>
+    <section className={`rounded-xl border border-line bg-card p-2.5 shadow-card ${className}`}>
       {title && (
-        <div className="mb-3 flex items-start justify-between gap-2">
+        <div className="mb-2 flex items-start justify-between gap-2">
           <div>
-            <h3 className="text-sm font-bold uppercase tracking-wide text-ink">{title}</h3>
-            {sub && <p className="text-xs text-faint">{sub}</p>}
+            <h3 className="text-[13px] font-bold uppercase tracking-wide text-ink">{title}</h3>
+            {sub && <p className="text-[10.5px] text-faint">{sub}</p>}
           </div>
           {extra}
         </div>
@@ -55,6 +55,10 @@ export function Panel({ title, sub, children, className = "", extra }) {
 }
 
 const pct = (v, base) => (base > 0 ? Math.round((v / base) * 1000) / 10 : 0);
+
+// Chiều cao biểu đồ co theo màn hình: màn thấp thì thu nhỏ, màn cao thì cao hơn
+// → Dashboard luôn vừa 1 màn hình ở mức thu phóng 100%.
+const CHART_H = "h-[clamp(118px,14.5vh,196px)] w-full";
 const tip = (isDark) => ({
   background: isDark ? "#111a2e" : "#fff",
   border: "1px solid var(--line)",
@@ -130,22 +134,22 @@ export function KpiCards({ kpis, installments }) {
     muted: { ic: "text-sub bg-muted/15", v: "text-ink", bar: "#9E9E9E" },
   };
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3 xl:grid-cols-6">
       {cards.map((c) => {
         const t = TONE[c.tone];
         return (
-          <div key={c.label} className="rounded-xl border border-line bg-card p-3 shadow-card">
+          <div key={c.label} className="rounded-xl border border-line bg-card px-2.5 py-2 shadow-card">
             <div className="flex items-center gap-2">
-              <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${t.ic}`}><c.icon size={16} /></span>
-              <span className="text-[11px] font-semibold uppercase leading-tight text-faint">{c.label}</span>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${t.ic}`}><c.icon size={15} /></span>
+              <span className="text-[10.5px] font-semibold uppercase leading-tight text-faint">{c.label}</span>
             </div>
-            <div className={`mt-2 text-xl font-bold tabular-nums ${t.v}`}>{c.value}</div>
+            <div className={`mt-1.5 text-lg font-bold leading-tight tabular-nums ${t.v}`}>{c.value}</div>
             {c.bar != null && (
-              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-hover">
+              <div className="mt-1 h-1 overflow-hidden rounded-full bg-hover">
                 <div className="h-full rounded-full" style={{ width: `${Math.min(100, c.bar)}%`, background: t.bar }} />
               </div>
             )}
-            <div className="mt-1 text-[11px] text-faint">{c.sub}</div>
+            <div className="mt-0.5 text-[10px] text-faint">{c.sub}</div>
           </div>
         );
       })}
@@ -162,7 +166,8 @@ export function DebtByCustomer({ customerData }) {
     .map((c) => ({ name: c.name.replace(/^CÔNG TY (TNHH )?/i, ""), value: Math.round((c.outstanding / 1e9) * 10) / 10 }));
   return (
     <Panel title="1. Công nợ theo chủ đầu tư" sub="Đơn vị: tỷ đồng">
-      <ResponsiveContainer width="100%" height={230}>
+      <div className={CHART_H}>
+      <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ left: 8, right: 28 }}>
           <CartesianGrid horizontal={false} stroke="var(--line)" />
           <XAxis type="number" tick={{ fontSize: 11, fill: "var(--faint)" }} />
@@ -173,6 +178,7 @@ export function DebtByCustomer({ customerData }) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      </div>
     </Panel>
   );
 }
@@ -188,10 +194,10 @@ export function DebtStructure({ kpis }) {
   return (
     <Panel title="2. Cơ cấu công nợ" sub="Đơn vị: tỷ đồng">
       <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <ResponsiveContainer width="100%" height={210}>
+        <div className={`relative flex-1 ${CHART_H}`}>
+          <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={data} dataKey="value" nameKey="name" innerRadius={62} outerRadius={92} paddingAngle={2} isAnimationActive={false}>
+              <Pie data={data} dataKey="value" nameKey="name" innerRadius={52} outerRadius={78} paddingAngle={2} isAnimationActive={false}>
                 {data.map((d, i) => (<Cell key={i} fill={d.fill} stroke="var(--card)" strokeWidth={2} />))}
               </Pie>
               <Tooltip formatter={(v) => fmtVND(v)} contentStyle={tip(isDark)} />
@@ -232,7 +238,8 @@ export function CashflowLine({ installments }) {
     .map(([k, v]) => ({ month: k.slice(5) + "/" + k.slice(0, 4), value: Math.round((v / 1e9) * 10) / 10 }));
   return (
     <Panel title="3. Dòng tiền thu theo tháng" sub="Đơn vị: tỷ đồng">
-      <ResponsiveContainer width="100%" height={230}>
+      <div className={CHART_H}>
+      <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ left: -8, right: 12, top: 12 }}>
           <CartesianGrid stroke="var(--line)" />
           <XAxis dataKey="month" tick={{ fontSize: 10, fill: "var(--faint)" }} />
@@ -243,6 +250,7 @@ export function CashflowLine({ installments }) {
           </Line>
         </LineChart>
       </ResponsiveContainer>
+      </div>
       {data.length === 0 && <p className="text-center text-xs text-faint">Chưa có dữ liệu thực thu.</p>}
     </Panel>
   );
@@ -255,18 +263,26 @@ export function AlertsPanel({ overdue, dueSoon }) {
   const dueTotal = due7.reduce((s, r) => s + r.remain, 0);
   return (
     <Panel title="4. Cảnh báo">
-      <div className="space-y-3">
-        <div className="rounded-lg border border-danger/30 bg-danger/5 p-2.5">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-danger"><AlertTriangle size={13} /> QUÁ HẠN</div>
-          <div className="mt-1 flex items-center justify-between text-xs"><span className="text-sub">{overdue.length} dự án</span><span className="font-semibold text-danger">{fmtTy(overTotal)}</span></div>
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-danger/30 bg-danger/5 px-2.5 py-1.5">
+          <div className="flex min-w-0 items-center gap-1.5 text-[11px] font-bold text-danger">
+            <AlertTriangle size={12} className="shrink-0" /> QUÁ HẠN
+            <span className="font-normal text-sub">· {overdue.length} dự án</span>
+          </div>
+          <span className="shrink-0 text-[11.5px] font-semibold text-danger">{fmtTy(overTotal)}</span>
         </div>
-        <div className="rounded-lg border border-warning/30 bg-warning/5 p-2.5">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-warning"><Clock size={13} /> ĐẾN HẠN 7 NGÀY TỚI</div>
-          <div className="mt-1 flex items-center justify-between text-xs"><span className="text-sub">{due7.length} dự án</span><span className="font-semibold text-warning">{fmtTy(dueTotal)}</span></div>
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-warning/30 bg-warning/5 px-2.5 py-1.5">
+          <div className="flex min-w-0 items-center gap-1.5 text-[11px] font-bold text-warning">
+            <Clock size={12} className="shrink-0" /> ĐẾN HẠN 7 NGÀY
+            <span className="font-normal text-sub">· {due7.length} dự án</span>
+          </div>
+          <span className="shrink-0 text-[11.5px] font-semibold text-warning">{fmtTy(dueTotal)}</span>
         </div>
-        <div className="rounded-lg border border-line bg-hover/40 p-2.5">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-sub"><FolderOpen size={13} /> HỒ SƠ TREO</div>
-          <div className="mt-1 text-xs text-faint">Theo dõi ở tab Chi tiết</div>
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-line bg-hover/40 px-2.5 py-1.5">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-sub">
+            <FolderOpen size={12} className="shrink-0" /> HỒ SƠ TREO
+          </div>
+          <span className="text-[10.5px] text-faint">xem tab Chi tiết</span>
         </div>
       </div>
     </Panel>
@@ -277,7 +293,7 @@ export function AlertsPanel({ overdue, dueSoon }) {
 export function PriorityProjects({ projects, className = "" }) {
   return (
     <Panel title="5. Dự án cần ưu tiên xử lý" className={className}>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
         {projects.map((p) => {
           const badge =
             p.st === "overdue"
@@ -286,21 +302,25 @@ export function PriorityProjects({ projects, className = "" }) {
               ? { t: p.dueLabel, c: "text-warning border-warning/40 bg-warning/5" }
               : { t: "Đang thực hiện", c: "text-accent border-accent/40 bg-accent/5" };
           return (
-            <div key={p.id} className="rounded-xl border border-line bg-page/40 p-3">
-              <div className="flex items-center gap-2">
-                <Building2 size={15} className="shrink-0 text-brand-500" />
-                <span className="truncate text-sm font-bold text-ink">{p.name}</span>
+            <div key={p.id} className="rounded-xl border border-line bg-page/40 px-2.5 py-1.5">
+              <div className="flex items-center justify-between gap-1.5">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <Building2 size={13} className="shrink-0 text-brand-500" />
+                  <span className="truncate text-[12.5px] font-bold text-ink">{p.name}</span>
+                </div>
+                {p.hs && <span className="shrink-0 text-[10px] text-faint">{p.hs}</span>}
               </div>
-              <span className={`mt-2 inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium ${badge.c}`}>{badge.t}</span>
-              <div className="mt-2 space-y-0.5 text-xs">
+              <div className="mt-1 flex items-center justify-between gap-1.5">
+                <span className={`truncate rounded-full border px-1.5 py-0 text-[9.5px] font-medium ${badge.c}`}>{badge.t}</span>
+                <span className="shrink-0 text-[10px] font-semibold text-brand-500">{p.pctPaid}%</span>
+              </div>
+              <div className="mt-1 h-1 overflow-hidden rounded-full bg-hover">
+                <div className="h-full rounded-full bg-brand-500" style={{ width: `${p.pctPaid}%` }} />
+              </div>
+              <div className="mt-1 space-y-0 text-[10.5px] leading-[1.45]">
                 <div className="flex justify-between"><span className="text-faint">Giá trị HĐ</span><span className="tabular-nums text-sub">{fmtTy(p.value)}</span></div>
-                <div className="flex justify-between"><span className="text-faint">Đã thu</span><span className="tabular-nums text-brand-500">{fmtTy(p.paid)} ({p.pctPaid}%)</span></div>
+                <div className="flex justify-between"><span className="text-faint">Đã thu</span><span className="tabular-nums text-brand-500">{fmtTy(p.paid)}</span></div>
                 <div className="flex justify-between"><span className="text-faint">Còn nợ</span><span className="font-semibold tabular-nums text-ink">{fmtTy(p.os)}</span></div>
-                {p.hs && <div className="flex justify-between"><span className="text-faint">HS thanh toán</span><span className="text-sub">{p.hs}</span></div>}
-              </div>
-              <div className="mt-2 flex items-center gap-2">
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-hover"><div className="h-full rounded-full bg-brand-500" style={{ width: `${p.pctPaid}%` }} /></div>
-                <span className="text-[11px] font-semibold text-brand-500">{p.pctPaid}%</span>
               </div>
             </div>
           );
@@ -332,14 +352,14 @@ export function AgingBars({ installments }) {
   const total = buckets.reduce((s, b) => s + b.value, 0);
   return (
     <Panel title="6. Tuổi công nợ (nợ đã bao lâu)" sub="Đơn vị: tỷ đồng">
-      <div className="space-y-3">
+      <div className="space-y-2">
         {buckets.map((b) => (
           <div key={b.label}>
-            <div className="mb-1 flex justify-between text-xs"><span className="text-sub">{b.label}</span><span className="font-semibold tabular-nums text-ink">{fmtTy(b.value)}</span></div>
-            <div className="h-3 overflow-hidden rounded-full bg-hover"><div className="h-full rounded-full" style={{ width: `${(b.value / max) * 100}%`, background: b.color }} /></div>
+            <div className="mb-0.5 flex justify-between text-[11.5px]"><span className="text-sub">{b.label}</span><span className="font-semibold tabular-nums text-ink">{fmtTy(b.value)}</span></div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-hover"><div className="h-full rounded-full" style={{ width: `${(b.value / max) * 100}%`, background: b.color }} /></div>
           </div>
         ))}
-        <div className="flex justify-between border-t border-line pt-2 text-xs font-bold"><span className="uppercase text-sub">Tổng cộng</span><span className="tabular-nums text-ink">{fmtTy(total)}</span></div>
+        <div className="flex justify-between border-t border-line pt-1.5 text-[11.5px] font-bold"><span className="uppercase text-sub">Tổng cộng</span><span className="tabular-nums text-ink">{fmtTy(total)}</span></div>
       </div>
     </Panel>
   );
@@ -351,18 +371,18 @@ export function TopDebtors({ customerData }) {
   const total = rows.reduce((s, c) => s + c.outstanding, 0);
   return (
     <Panel title="7. Chủ đầu tư còn nợ nhiều nhất" sub="Đơn vị: tỷ đồng">
-      <table className="w-full text-sm">
+      <table className="w-full text-[12.5px]">
         <tbody>
           {rows.map((c, i) => (
             <tr key={c.id} className="border-b border-line/60 last:border-0">
-              <td className="py-2 pr-2 text-faint">{i + 1}</td>
-              <td className="py-2 pr-2 font-medium text-ink">{c.name.replace(/^CÔNG TY (TNHH )?/i, "")}</td>
-              <td className="py-2 text-right font-semibold tabular-nums text-ink">{fmtTy(c.outstanding)}</td>
+              <td className="py-1.5 pr-2 text-faint">{i + 1}</td>
+              <td className="py-1.5 pr-2 font-medium text-ink">{c.name.replace(/^CÔNG TY (TNHH )?/i, "")}</td>
+              <td className="py-1.5 text-right font-semibold tabular-nums text-ink">{fmtTy(c.outstanding)}</td>
             </tr>
           ))}
         </tbody>
         <tfoot>
-          <tr className="font-bold"><td className="py-2 uppercase text-sub" colSpan={2}>Tổng cộng</td><td className="py-2 text-right tabular-nums text-accent">{fmtTy(total)}</td></tr>
+          <tr className="font-bold"><td className="py-1.5 uppercase text-sub" colSpan={2}>Tổng cộng</td><td className="py-1.5 text-right tabular-nums text-accent">{fmtTy(total)}</td></tr>
         </tfoot>
       </table>
     </Panel>
@@ -383,15 +403,16 @@ export function DocFlow({ counts }) {
       <div className="flex flex-col items-stretch gap-2 md:flex-row md:items-center">
         {steps.map((s, i) => (
           <div key={s.label} className="flex flex-1 items-center gap-2">
-            <div className="flex flex-1 items-center gap-3 rounded-xl border border-line bg-page/40 p-3">
-              <span className={`flex h-10 w-10 items-center justify-center rounded-lg ${s.tone}`}><s.icon size={20} /></span>
-              <div>
-                <div className="text-[11px] font-semibold uppercase text-faint">{s.label}</div>
-                <div className="text-xl font-bold text-ink">{s.n}</div>
-                <div className="text-[11px] text-faint">bộ hồ sơ</div>
+            <div className="flex flex-1 items-center gap-2.5 rounded-xl border border-line bg-page/40 px-2.5 py-1.5">
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${s.tone}`}><s.icon size={17} /></span>
+              <div className="min-w-0">
+                <div className="text-[10px] font-semibold uppercase leading-tight text-faint">{s.label}</div>
+                <div className="text-base font-bold leading-tight text-ink">
+                  {s.n} <span className="text-[10px] font-normal text-faint">bộ hồ sơ</span>
+                </div>
               </div>
             </div>
-            {i < steps.length - 1 && <ChevronRight size={18} className="hidden shrink-0 text-faint md:block" />}
+            {i < steps.length - 1 && <ChevronRight size={16} className="hidden shrink-0 text-faint md:block" />}
           </div>
         ))}
       </div>

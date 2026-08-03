@@ -27,11 +27,6 @@ function contractStatus(rows) {
   return "progress";
 }
 
-function nowStr(d) {
-  const p = (x) => String(x).padStart(2, "0");
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-
 const emptyFilters = { year: "all", customerId: "all", contractId: "all", status: "all" };
 
 export default function Overview({ embedded = false }) {
@@ -40,7 +35,6 @@ export default function Overview({ embedded = false }) {
   const [installments, setInstallments] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadedAt, setLoadedAt] = useState(() => new Date());
   const [filters, setFilters] = useState(emptyFilters);
 
   const load = useCallback(async () => {
@@ -52,7 +46,6 @@ export default function Overview({ embedded = false }) {
     setContracts(ct);
     setInstallments(inst);
     setCustomers(cus);
-    setLoadedAt(new Date());
     setLoading(false);
   }, []);
 
@@ -156,13 +149,6 @@ export default function Overview({ embedded = false }) {
       )}
 
       <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <div>
-            <h1 className="text-xl font-bold uppercase text-ink xl:text-2xl">Dashboard công nợ chủ đầu tư</h1>
-            <p className="text-xs text-faint">Cập nhật lúc: {nowStr(loadedAt)}</p>
-          </div>
-        </div>
-
         <FilterBar
           years={years}
           customers={customers}

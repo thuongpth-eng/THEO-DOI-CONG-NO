@@ -26,17 +26,27 @@ function Item({ to, label, icon: Icon, end }) {
       to={to}
       end={end}
       className={({ isActive }) =>
-        `flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-semibold uppercase tracking-wide leading-tight transition-colors ${
+        `group relative flex min-h-[46px] w-full items-center gap-3 overflow-hidden rounded-xl py-2.5 pl-3 pr-2 text-[13.5px] font-semibold leading-snug transition-all ${
           isActive
-            ? "bg-brand-500 text-white"
+            ? "bg-brand-500 text-white shadow-md shadow-brand-500/25"
             : "text-navdim hover:bg-navhover hover:text-navfg"
         }`
       }
     >
       {({ isActive }) => (
         <>
-          <Icon size={20} className={isActive ? "text-white" : "text-navdim"} />
-          {label}
+          {/* Vạch sáng đánh dấu mục đang mở */}
+          {isActive && (
+            <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-white/90" />
+          )}
+          <span
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
+              isActive ? "bg-white/20 text-white" : "bg-white/5 text-navdim group-hover:text-navfg"
+            }`}
+          >
+            <Icon size={17} />
+          </span>
+          <span className="min-w-0">{label}</span>
         </>
       )}
     </NavLink>
@@ -69,19 +79,22 @@ export default function Sidebar({ open = false, onClose }) {
 
         <a
           href={PORTAL_URL}
-          className="mx-3 mb-2 flex min-h-[44px] items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide text-navdim hover:bg-navhover hover:text-navfg"
+          className="mx-3 mb-3 flex min-h-[40px] items-center justify-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-[11.5px] font-semibold uppercase tracking-wide text-navdim transition-colors hover:border-white/30 hover:bg-navhover hover:text-navfg"
         >
           <ArrowLeft size={14} />
           Về HP CONS Portal
         </a>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-2">
+        <nav className="flex-1 space-y-1.5 overflow-y-auto px-2.5">
+          <div className="px-1.5 pb-1 text-[10.5px] font-bold uppercase tracking-wider text-navdim/70">
+            Chức năng
+          </div>
           {NAV.map((item) => (
             <Item key={item.to} {...item} />
           ))}
           {isAdmin && (
             <>
-              <div className="px-3 pb-1 pt-5 text-[11px] font-semibold uppercase tracking-wider text-navdim">
+              <div className="mt-4 border-t border-white/10 px-1.5 pb-1 pt-4 text-[10.5px] font-bold uppercase tracking-wider text-navdim/70">
                 Quản trị
               </div>
               {ADMIN.map((item) => (
@@ -92,8 +105,8 @@ export default function Sidebar({ open = false, onClose }) {
         </nav>
 
         <div className="border-t border-white/10 p-3">
-          <div className="flex items-center gap-3 px-2 py-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-sm font-bold text-white">
+          <div className="flex items-center gap-3 rounded-xl bg-white/5 px-2.5 py-2">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500 text-sm font-bold text-white">
               {(user?.name || "?").charAt(0)}
             </div>
             <div className="min-w-0 leading-tight">
@@ -105,9 +118,9 @@ export default function Sidebar({ open = false, onClose }) {
           </div>
           <button
             onClick={logout}
-            className="mt-1 flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-semibold uppercase tracking-wide text-navdim hover:bg-navhover hover:text-danger"
+            className="mt-2 flex min-h-[42px] w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-navdim transition-colors hover:bg-danger/15 hover:text-danger"
           >
-            <LogOut size={18} />
+            <LogOut size={17} />
             Đăng xuất
           </button>
         </div>

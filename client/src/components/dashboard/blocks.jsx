@@ -331,7 +331,7 @@ export function AgingBars({ installments }) {
   const max = Math.max(1, ...buckets.map((b) => b.value));
   const total = buckets.reduce((s, b) => s + b.value, 0);
   return (
-    <Panel title="6. Aging report (tuổi công nợ)" sub="Đơn vị: tỷ đồng">
+    <Panel title="6. Tuổi công nợ (nợ đã bao lâu)" sub="Đơn vị: tỷ đồng">
       <div className="space-y-3">
         {buckets.map((b) => (
           <div key={b.label}>
@@ -350,7 +350,7 @@ export function TopDebtors({ customerData }) {
   const rows = customerData.filter((c) => c.outstanding > 0).slice(0, 5);
   const total = rows.reduce((s, c) => s + c.outstanding, 0);
   return (
-    <Panel title="7. Top chủ đầu tư còn nợ nhiều nhất" sub="Đơn vị: tỷ đồng">
+    <Panel title="7. Chủ đầu tư còn nợ nhiều nhất" sub="Đơn vị: tỷ đồng">
       <table className="w-full text-sm">
         <tbody>
           {rows.map((c, i) => (

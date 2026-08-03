@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Download, Filter, Columns3 } from "lucide-react";
+import { Download, Filter, Columns3, FileSpreadsheet, FileText } from "lucide-react";
 import Modal, { Btn } from "./Modal";
 import {
   FIELDS,
@@ -7,12 +7,21 @@ import {
   MOC_NGAY,
   filterRows,
   exportCustomExcel,
+  exportCustomPDF,
   ddmmyyyy,
 } from "../lib/exportCustom";
 import { fmtTy, outstanding } from "../lib/models";
 
 // Xuất dữ liệu theo ý muốn: lọc tháng / CĐT / công trình / quá hạn - đến hạn + chọn cột
-export default function ExportModal({ open, onClose, contracts, installments, exportedBy }) {
+export default function ExportModal({
+  open,
+  onClose,
+  contracts,
+  installments,
+  exportedBy,
+  onMauChuan,
+  busyMauChuan,
+}) {
   const [tuNgay, setTuNgay] = useState("");
   const [denNgay, setDenNgay] = useState("");
   const [mocNgay, setMocNgay] = useState(""); // rỗng = xuất toàn bộ, không lọc theo ngày
@@ -79,11 +88,15 @@ export default function ExportModal({ open, onClose, contracts, installments, ex
   const toggle = (arr, set, v) =>
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 
-  async function run() {
+  async function run(dang = "excel") {
     setBusy(true);
     setErr("");
     try {
-      await exportCustomExcel(contracts, installments, f, { exportedBy });
+      if (dang === "pdf") {
+        exportCustomPDF(contracts, installments, f, { exportedBy });
+      } else {
+        await exportCustomExcel(contracts, installments, f, { exportedBy });
+      }
       onClose();
     } catch (ex) {
       setErr(ex?.message || String(ex));
@@ -101,7 +114,12 @@ export default function ExportModal({ open, onClose, contracts, installments, ex
       footer={
         <>
           <Btn variant="ghost" onClick={onClose}>Đóng</Btn>
-          <Btn onClick={run} disabled={busy || !preview.n || !fields.length}>
+          <Btn variant="ghost" onClick={() => run("pdf")} disabled={busy || !preview.n || !fields.length}>
+            <span className="flex items-center gap-1.5">
+              <FileText size={15} /> Xuất PDF
+            </span>
+          </Btn>
+          <Btn onClick={() => run("excel")} disabled={busy || !preview.n || !fields.length}>
             <span className="flex items-center gap-1.5">
               <Download size={15} /> {busy ? "Đang xuất…" : `Xuất Excel (${preview.n} dòng)`}
             </span>
@@ -110,8 +128,24 @@ export default function ExportModal({ open, onClose, contracts, installments, ex
       }
     >
       <div className="space-y-4">
+        {/* Xuất nguyên mẫu chuẩn HP CONS (nhiều sheet) */}
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-500/40 bg-brand-500/5 p-3">
+          <div className="text-xs text-sub">
+            <b className="text-ink">Xuất theo mẫu chuẩn HP CONS</b> — đủ 3 phần: Tổng quan ·
+            Danh sách công trình · mỗi công trình 1 sheet (đúng mẫu file công nợ của công ty).
+          </div>
+          <button
+            onClick={onMauChuan}
+            disabled={busyMauChuan}
+            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
+          >
+            <FileSpreadsheet size={15} />
+            {busyMauChuan ? "Đang xuất…" : "Xuất mẫu chuẩn"}
+          </button>
+        </div>
+
         {/* Bộ lọc */}
-        <Box icon={Filter} title="Phạm vi dữ liệu">
+        <Box icon={Filter} title="…hoặc xuất riêng theo ý muốn — Phạm vi dữ liệu">
           <div className="mb-3 flex flex-wrap gap-2">
             <Chk on={!mocNgay} set={() => datKy("all")} label="Xuất toàn bộ (không lọc ngày)" />
             <Mini onClick={() => datKy("thang")}>Tháng này</Mini>

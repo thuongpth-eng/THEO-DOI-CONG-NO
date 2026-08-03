@@ -85,23 +85,17 @@ export default function Receivable() {
   return (
     <div className="pt-4 xl:pt-6">
       {/* Thanh tab + nút xuất/in (hiện trên mọi tab) */}
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-line">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <Tabs items={TABS} value={tab} onChange={setTab} />
         {/* Tab Dashboard đã có nút Xuất Excel/Báo cáo trong thanh lọc → ẩn toolbar này */}
         {tab !== "dash" && (
-          <div className="flex flex-wrap gap-2 pb-2">
-            <ExportBtn
-              icon={FileSpreadsheet}
-              label={busy === "excel" ? "Đang xuất…" : "Xuất Excel"}
-              onClick={() => run("excel")}
-              busy={busy === "excel"}
-              primary
-            />
+          <div className="flex flex-wrap gap-2">
             <ExportBtn
               icon={SlidersHorizontal}
               label={busy === "custom" ? "Đang mở…" : "Xuất dữ liệu"}
               onClick={openExport}
               busy={busy === "custom"}
+              primary
             />
             <ExportBtn
               icon={Printer}
@@ -120,6 +114,8 @@ export default function Receivable() {
           contracts={data.contracts}
           installments={data.installments}
           exportedBy={user?.name}
+          onMauChuan={() => run("excel")}
+          busyMauChuan={busy === "excel"}
         />
       )}
 

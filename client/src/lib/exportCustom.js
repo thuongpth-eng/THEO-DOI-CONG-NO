@@ -189,6 +189,103 @@ export async function exportCustomExcel(contracts, installments, f, opts = {}) {
   return rows.length;
 }
 
+// Xuất PDF (qua hộp thoại in của trình duyệt) — cùng bộ lọc & cột đã chọn
+export function exportCustomPDF(contracts, installments, f, opts = {}) {
+  const rows = filterRows(installments, contracts, f);
+  const cols = FIELDS.filter((x) => f.fields.includes(x.key));
+  if (!cols.length) throw new Error("Chưa chọn cột nào để xuất.");
+  const ctById = new Map(contracts.map((c) => [c.id, c]));
+  const esc = (v) =>
+    String(v ?? "").replace(/[&<>]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[m]));
+  const tien = (n) => new Intl.NumberFormat("vi-VN").format(Math.round(Number(n) || 0));
+
+  const tong = {};
+  for (const c of cols)
+    if (c.money) tong[c.key] = rows.reduce((s, r) => s + (Number(c.get(r, ctById.get(r.contractId))) || 0), 0);
+
+  const thead = cols
+    .map((c) => `<th class="${c.money ? "r" : c.date ? "c" : ""}">${esc(c.label)}</th>`)
+    .join("");
+  const tbody = rows
+    .map((r) => {
+      const c0 = ctById.get(r.contractId);
+      return `<tr>${cols
+        .map((c) => {
+          const v = c.get(r, c0);
+          const cls = c.money ? "r" : c.date ? "c" : "";
+          return `<td class="${cls}">${c.money ? tien(v) : esc(v)}</td>`;
+        })
+        .join("")}</tr>`;
+    })
+    .join("");
+  const tfoot = `<tr>${cols
+    .map((c, i) =>
+      i === 0
+        ? `<td><b>TỔNG</b></td>`
+        : c.money
+        ? `<td class="r"><b>${tien(tong[c.key])}</b></td>`
+        : "<td></td>"
+    )
+    .join("")}</tr>`;
+
+  const html = `<!doctype html><html lang="vi"><head><meta charset="utf-8">
+  <title>Báo cáo công nợ — HP CONS</title>
+  <style>
+    @page { size: A4 landscape; margin: 10mm; }
+    *{box-sizing:border-box}
+    body{font:11px/1.45 Arial,"Segoe UI",sans-serif;color:#1e293b;margin:0;padding:14px}
+    .head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #60BB46;padding-bottom:8px}
+    .brand{font-size:18px;font-weight:800;color:#4B4F55;letter-spacing:.5px}
+    .brand span{color:#60BB46}
+    .meta{text-align:right;font-size:10px;color:#64748b}
+    h1{font-size:15px;margin:12px 0 2px}
+    .sub{color:#64748b;font-size:10px;margin-bottom:10px}
+    .kpi{display:flex;gap:8px;margin:0 0 12px}
+    .kpi div{flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:7px 9px;background:#fafafa}
+    .kpi .lbl{font-size:9px;color:#64748b;text-transform:uppercase}
+    .kpi .val{font-size:13px;font-weight:800;margin-top:2px}
+    table{width:100%;border-collapse:collapse;font-size:9.5px}
+    th,td{border:1px solid #dbe3ea;padding:4px 5px;text-align:left;vertical-align:top}
+    thead th{background:#60BB46;color:#fff;font-size:9px;text-transform:uppercase}
+    thead{display:table-header-group}
+    tr{page-break-inside:avoid}
+    td.r,th.r{text-align:right;white-space:nowrap}
+    td.c,th.c{text-align:center;white-space:nowrap}
+    tfoot td{background:#EAF6E6;font-weight:800}
+    .ft{margin-top:14px;font-size:9px;color:#94a3b8;text-align:center}
+  </style></head><body>
+    <div class="head">
+      <div class="brand">HP <span>CONS</span></div>
+      <div class="meta">Ngày in: ${new Date().toLocaleString("vi-VN")}${
+    opts.exportedBy ? `<br>Người xuất: ${esc(opts.exportedBy)}` : ""
+  }</div>
+    </div>
+    <h1>BÁO CÁO CÔNG NỢ CHỦ ĐẦU TƯ</h1>
+    <div class="sub">${esc(moTaLoc(f, contracts, rows.length, ""))}</div>
+    <div class="kpi">
+      <div><div class="lbl">Số dòng</div><div class="val">${rows.length}</div></div>
+      <div><div class="lbl">Giá trị đợt</div><div class="val">${tien(
+        rows.reduce((s, r) => s + (r.value || 0), 0)
+      )} đ</div></div>
+      <div><div class="lbl">Đã thu</div><div class="val" style="color:#059669">${tien(
+        rows.reduce((s, r) => s + (r.paid || 0), 0)
+      )} đ</div></div>
+      <div><div class="lbl">Còn phải thu</div><div class="val" style="color:#dc2626">${tien(
+        rows.reduce((s, r) => s + outstanding(r), 0)
+      )} đ</div></div>
+    </div>
+    <table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody><tfoot>${tfoot}</tfoot></table>
+    <div class="ft">Báo cáo tự động từ hệ thống Kiểm soát hợp đồng chủ đầu tư · HP CONS</div>
+    <script>window.onload=()=>{window.print()}</script>
+  </body></html>`;
+
+  const w = window.open("", "_blank");
+  if (!w) throw new Error("Trình duyệt đã chặn cửa sổ in. Sếp cho phép pop-up rồi thử lại.");
+  w.document.write(html);
+  w.document.close();
+  return rows.length;
+}
+
 function moTaLoc(f, contracts, soDong, by) {
   const parts = [];
   const moc = MOC_NGAY.find((m) => m.key === f.mocNgay)?.label;

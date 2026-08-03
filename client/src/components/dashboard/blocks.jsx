@@ -30,7 +30,7 @@ import {
   FileSpreadsheet,
   FileBarChart2,
 } from "lucide-react";
-import { fmtVND, fmtTy, outstanding, daysLate } from "../../lib/models";
+import { fmtVND, fmtTy, outstanding, daysLate, arisen } from "../../lib/models";
 import { useTheme } from "../../context/ThemeContext";
 
 const BLUE = "#0969A7";
@@ -39,22 +39,35 @@ const ORANGE = "#FFA726";
 
 export function Panel({ title, sub, children, className = "", extra }) {
   return (
-    <section className={`rounded-xl border border-line bg-card p-4 shadow-card ${className}`}>
+    <section
+      className={`flex flex-col rounded-2xl border border-line bg-card p-5 transition-shadow hover:shadow-md ${className}`}
+    >
       {title && (
-        <div className="mb-3 flex items-start justify-between gap-2">
-          <div>
-            <h3 className="text-sm font-bold uppercase tracking-wide text-ink">{title}</h3>
-            {sub && <p className="text-xs text-faint">{sub}</p>}
+        <div className="mb-4 flex items-start justify-between gap-2 border-b border-line/70 pb-3">
+          <div className="min-w-0">
+            <h3 className="text-[12.5px] font-bold uppercase tracking-[0.08em] text-ink">{title}</h3>
+            {sub && <p className="mt-0.5 text-[11px] tracking-wide text-faint">{sub}</p>}
           </div>
           {extra}
         </div>
       )}
-      {children}
+      <div className="flex-1">{children}</div>
     </section>
   );
 }
 
 const pct = (v, base) => (base > 0 ? Math.round((v / base) * 1000) / 10 : 0);
+
+// Rút gọn tên chủ đầu tư cho nhãn biểu đồ (giữ tên đầy đủ ở tooltip)
+const tenNgan = (s) =>
+  String(s || "")
+    .replace(/^CÔNG TY\s+/i, "")
+    .replace(/\bTNHH\b\s*/i, "")
+    .replace(/\bMỘT THÀNH VIÊN\b\s*/i, "")
+    .replace(/\bMTV\b\s*/i, "")
+    .replace(/\s*\((VIET ?NAM|VIỆT NAM)\)\s*/i, "")
+    .replace(/\s+VIỆT NAM$/i, "")
+    .trim();
 const tip = (isDark) => ({
   background: isDark ? "#111a2e" : "#fff",
   border: "1px solid var(--line)",
@@ -130,26 +143,211 @@ export function KpiCards({ kpis, installments }) {
     muted: { ic: "text-sub bg-muted/15", v: "text-ink", bar: "#9E9E9E" },
   };
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
       {cards.map((c) => {
         const t = TONE[c.tone];
         return (
-          <div key={c.label} className="rounded-xl border border-line bg-card p-3 shadow-card">
-            <div className="flex items-center gap-2">
-              <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${t.ic}`}><c.icon size={16} /></span>
-              <span className="text-[11px] font-semibold uppercase leading-tight text-faint">{c.label}</span>
+          <div
+            key={c.label}
+            className="group relative overflow-hidden rounded-2xl border border-line bg-card p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            {/* Icon mờ trang trí góc phải */}
+            <c.icon
+              size={54}
+              className="pointer-events-none absolute -right-2 -top-2 opacity-[0.05] transition-opacity group-hover:opacity-[0.09]"
+            />
+            <div className="text-[10.5px] font-semibold uppercase leading-tight tracking-[0.1em] text-faint">
+              {c.label}
             </div>
-            <div className={`mt-2 text-xl font-bold tabular-nums ${t.v}`}>{c.value}</div>
-            {c.bar != null && (
-              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-hover">
-                <div className="h-full rounded-full" style={{ width: `${Math.min(100, c.bar)}%`, background: t.bar }} />
-              </div>
-            )}
-            <div className="mt-1 text-[11px] text-faint">{c.sub}</div>
+            <div className={`mt-2.5 text-[26px] font-extrabold leading-none tabular-nums tracking-tight ${t.v}`}>
+              {c.value}
+            </div>
+            <div className="mt-3">
+              {c.bar != null ? (
+                <div className="h-[3px] overflow-hidden rounded-full bg-hover">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${Math.min(100, c.bar)}%`, background: t.bar }}
+                  />
+                </div>
+              ) : (
+                <div className="h-[3px] rounded-full bg-hover" />
+              )}
+              <div className="mt-2 text-[11px] tracking-wide text-faint">{c.sub}</div>
+            </div>
           </div>
         );
       })}
     </div>
+  );
+}
+
+/* ---------- Dải tóm tắt đầu trang ---------- */
+export function HeroSummary({ kpis, soHopDong, soCDT, soDot }) {
+  const base = kpis.totalContract || kpis.totalPaid + kpis.outstanding;
+  const tyLe = pct(kpis.totalPaid, base);
+  const R = 54;
+  const chuVi = 2 * Math.PI * R;
+  return (
+    <section className="rounded-2xl border border-line bg-card p-5 xl:p-6">
+      <div className="flex flex-col items-center gap-6 xl:flex-row xl:gap-10">
+        {/* Vòng tỷ lệ thu */}
+        <div className="relative shrink-0">
+          <svg width="140" height="140" viewBox="0 0 140 140" className="-rotate-90">
+            <circle cx="70" cy="70" r={R} fill="none" stroke="var(--hover)" strokeWidth="11" />
+            <circle
+              cx="70"
+              cy="70"
+              r={R}
+              fill="none"
+              stroke={GREEN}
+              strokeWidth="11"
+              strokeLinecap="round"
+              strokeDasharray={chuVi}
+              strokeDashoffset={chuVi * (1 - Math.min(100, tyLe) / 100)}
+              style={{ transition: "stroke-dashoffset 900ms ease" }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-[26px] font-extrabold leading-none tabular-nums text-ink">{tyLe}%</span>
+            <span className="mt-1 text-[10px] uppercase tracking-widest text-faint">đã thu</span>
+          </div>
+        </div>
+
+        {/* 3 số quan trọng */}
+        <div className="grid w-full flex-1 grid-cols-1 gap-5 sm:grid-cols-3">
+          <HeroNum label="Đã thu" value={fmtVND(kpis.totalPaid)} tone="text-brand-500" />
+          <HeroNum label="Còn phải thu" value={fmtVND(kpis.outstanding)} tone="text-warning" />
+          <HeroNum
+            label="Quá hạn"
+            value={kpis.overdue > 0 ? fmtVND(kpis.overdue) : "Không có"}
+            tone={kpis.overdue > 0 ? "text-danger" : "text-brand-500"}
+          />
+        </div>
+
+        {/* Quy mô theo dõi */}
+        <div className="flex w-full shrink-0 justify-around gap-6 border-t border-line pt-4 xl:w-auto xl:flex-col xl:justify-start xl:gap-3 xl:border-l xl:border-t-0 xl:pl-8 xl:pt-0">
+          <MiniStat label="Tổng giá trị HĐ" value={fmtTy(base)} />
+          <MiniStat label="Hợp đồng / CĐT" value={`${soHopDong} / ${soCDT}`} />
+          <MiniStat label="Số đợt theo dõi" value={soDot} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HeroNum({ label, value, tone }) {
+  return (
+    <div>
+      <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint">{label}</div>
+      <div className={`mt-1.5 text-lg font-extrabold tabular-nums tracking-tight xl:text-xl ${tone}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }) {
+  return (
+    <div className="text-center xl:text-left">
+      <div className="text-[10px] uppercase tracking-widest text-faint">{label}</div>
+      <div className="text-sm font-bold tabular-nums text-ink">{value}</div>
+    </div>
+  );
+}
+
+/* ---------- Việc cần làm 7 ngày tới ---------- */
+export function WeekTasks({ installments, contracts }) {
+  const ten = (r) => contracts.find((c) => c.id === r.contractId)?.name || r.contractName || "—";
+  const today = new Date();
+  const ngay = (iso) => {
+    const s = String(iso || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return "";
+    const [y, m, d] = s.split("-");
+    return `${d}/${m}/${y}`;
+  };
+  const conLai = (iso) => {
+    const s = String(iso || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    return Math.round((new Date(s + "T00:00:00") - new Date(today.toDateString())) / 86400000);
+  };
+
+  // Việc gấp: quá hạn + đến hạn trong 7 ngày
+  const items = [];
+  const hoSoTre = [];
+  for (const r of installments) {
+    const os = outstanding(r);
+    if (os <= 0) continue;
+    const late = daysLate(r);
+    if (late > 0) {
+      items.push({ r, loai: "Quá hạn", ngayHan: r.ngayDenHan, uu: 0, mo: `quá ${late} ngày`, tone: "danger" });
+      continue;
+    }
+    const d = conLai(r.ngayDenHan);
+    if (d !== null && d >= 0 && d <= 7) {
+      items.push({ r, loai: "Đến hạn", ngayHan: r.ngayDenHan, uu: 1, mo: d === 0 ? "hôm nay" : `còn ${d} ngày`, tone: "warning" });
+    } else if (arisen(r) && !r.ngayGuiHS && (r.status || 0) < 2) {
+      // Đợt ĐÃ phát sinh nhưng chưa gửi hồ sơ — chỉ dùng để lấp khi không có việc gấp
+      hoSoTre.push({ r, loai: "Cần làm hồ sơ", ngayHan: "", uu: 2, mo: "đã phát sinh, chưa gửi hồ sơ CĐT", tone: "accent" });
+    }
+  }
+  items.sort((a, b) => a.uu - b.uu || (b.r.value || 0) - (a.r.value || 0));
+  hoSoTre.sort((a, b) => (b.r.value || 0) - (a.r.value || 0));
+  // Nếu ít việc gấp thì bổ sung tối đa cho đủ 6 dòng
+  if (items.length < 6) items.push(...hoSoTre.slice(0, 6 - items.length));
+  const show = items.slice(0, 7);
+  const TONE = {
+    danger: "bg-danger/10 text-danger",
+    warning: "bg-warning/15 text-warning",
+    accent: "bg-accent/10 text-accent",
+  };
+
+  return (
+    <Panel
+      title="Việc cần làm tuần này"
+      sub={
+        items.length
+          ? `${items.length} việc — quá hạn & đến hạn 7 ngày tới, xếp theo mức ưu tiên`
+          : "Không có việc gấp trong 7 ngày tới"
+      }
+    >
+      {show.length === 0 ? (
+        <p className="py-6 text-center text-xs italic text-faint">
+          Tuần này không có đợt nào quá hạn hoặc đến hạn. 👍
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {show.map((x, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between gap-3 rounded-xl border border-line px-3 py-2.5 transition-colors hover:bg-hover"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className={`rounded-md px-1.5 py-0.5 text-[9.5px] font-bold uppercase ${TONE[x.tone]}`}>
+                    {x.loai}
+                  </span>
+                  <span className="truncate text-xs font-semibold text-ink">{ten(x.r)}</span>
+                  <span className="shrink-0 text-[11px] text-faint">· {x.r.dot}</span>
+                </div>
+                <div className="mt-0.5 text-[10.5px] text-faint">
+                  {x.mo}
+                  {x.ngayHan ? ` · hạn ${ngay(x.ngayHan)}` : ""}
+                </div>
+              </div>
+              <div className="shrink-0 text-right text-xs font-bold tabular-nums text-ink">
+                {fmtVND(outstanding(x.r))}
+              </div>
+            </div>
+          ))}
+          {items.length > show.length && (
+            <p className="pt-1 text-center text-[10.5px] italic text-faint">
+              …và {items.length - show.length} việc khác — xem ở tab Chi tiết.
+            </p>
+          )}
+        </div>
+      )}
+    </Panel>
   );
 }
 
@@ -159,17 +357,31 @@ export function DebtByCustomer({ customerData }) {
   const data = customerData
     .filter((c) => c.outstanding > 0)
     .slice(0, 6)
-    .map((c) => ({ name: c.name.replace(/^CÔNG TY (TNHH )?/i, ""), value: Math.round((c.outstanding / 1e9) * 10) / 10 }));
+    .map((c) => ({
+      name: tenNgan(c.name),
+      full: c.name,
+      value: Math.round((c.outstanding / 1e9) * 10) / 10,
+    }));
   return (
     <Panel title="1. Công nợ theo chủ đầu tư" sub="Đơn vị: tỷ đồng">
-      <ResponsiveContainer width="100%" height={230}>
-        <BarChart data={data} layout="vertical" margin={{ left: 8, right: 28 }}>
+      <ResponsiveContainer width="100%" height={250}>
+        <BarChart data={data} layout="vertical" margin={{ left: 4, right: 40 }}>
           <CartesianGrid horizontal={false} stroke="var(--line)" />
           <XAxis type="number" tick={{ fontSize: 11, fill: "var(--faint)" }} />
-          <YAxis type="category" dataKey="name" width={96} tick={{ fontSize: 10, fill: "var(--sub)" }} />
-          <Tooltip formatter={(v) => v + " tỷ"} contentStyle={tip(isDark)} />
-          <Bar dataKey="value" fill={BLUE} radius={[0, 4, 4, 0]} isAnimationActive={false}>
-            <LabelList dataKey="value" position="right" fontSize={11} fill="var(--sub)" />
+          <YAxis
+            type="category"
+            dataKey="name"
+            width={132}
+            interval={0}
+            tick={{ fontSize: 11, fill: "var(--sub)" }}
+          />
+          <Tooltip
+            formatter={(v) => v + " tỷ"}
+            labelFormatter={(l, p) => p?.[0]?.payload?.full || l}
+            contentStyle={tip(isDark)}
+          />
+          <Bar dataKey="value" fill={BLUE} radius={[0, 5, 5, 0]} isAnimationActive={false}>
+            <LabelList dataKey="value" position="right" fontSize={11} fontWeight={600} fill="var(--sub)" />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

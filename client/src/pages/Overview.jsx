@@ -16,6 +16,8 @@ import {
   AgingBars,
   TopDebtors,
   DocFlow,
+  HeroSummary,
+  WeekTasks,
 } from "../components/dashboard/blocks";
 import LoadingState from "../components/shared/LoadingState";
 
@@ -148,7 +150,7 @@ export default function Overview({ embedded = false }) {
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         <FilterBar
           years={years}
           customers={customers}
@@ -160,20 +162,29 @@ export default function Overview({ embedded = false }) {
           onReport={() => printReport(fContracts, fInstallments)}
         />
 
+        <HeroSummary
+          kpis={kpis}
+          soHopDong={fContracts.length}
+          soCDT={custData.length}
+          soDot={fInstallments.length}
+        />
+
         <KpiCards kpis={kpis} installments={fInstallments} />
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-4">
           <DebtByCustomer customerData={custData} />
           <DebtStructure kpis={kpis} />
           <CashflowLine installments={fInstallments} />
           <AlertsPanel overdue={overdueRows} dueSoon={dueSoon} />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
-          <PriorityProjects projects={priority} className="xl:col-span-2" />
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
+          <WeekTasks installments={fInstallments} contracts={fContracts} />
           <AgingBars installments={fInstallments} />
           <TopDebtors customerData={custData} />
         </div>
+
+        <PriorityProjects projects={priority} />
 
         <DocFlow counts={flow} />
       </div>

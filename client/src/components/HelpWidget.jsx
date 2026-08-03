@@ -8,8 +8,10 @@ import {
   Trash2,
   Lightbulb,
   HelpCircle,
+  Wallet,
 } from "lucide-react";
 import api from "../lib/data";
+import { traLoi, GOI_Y } from "../lib/qa";
 import { useAuth } from "../context/AuthContext";
 
 const nowISO = () => new Date().toISOString();
@@ -51,13 +53,34 @@ export default function HelpWidget() {
   // Người quản lý góp ý: TGĐ/PTGĐ + kế toán (người vận hành app)
   const quanLy = isAdmin || user?.role === "kt";
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState("faq"); // faq | gopy
+  const [tab, setTab] = useState("congno"); // congno | faq | gopy
+  const [hoi, setHoi] = useState("");
+  const [dap, setDap] = useState(null);
+  const [dl, setDl] = useState(null); // dữ liệu công nợ để trả lời
+  const [dangTai, setDangTai] = useState(false);
   const [expand, setExpand] = useState(-1);
   const [text, setText] = useState("");
   const [loai, setLoai] = useState("Góp ý");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [list, setList] = useState([]);
+
+  // Nạp dữ liệu công nợ khi mở tab "Hỏi công nợ"
+  useEffect(() => {
+    if (!open || tab !== "congno" || dl || dangTai) return;
+    setDangTai(true);
+    Promise.all([api.listContracts(), api.listInstallments()])
+      .then(([contracts, installments]) => setDl({ contracts, installments }))
+      .catch(() => setDl({ contracts: [], installments: [] }))
+      .finally(() => setDangTai(false));
+  }, [open, tab, dl, dangTai]);
+
+  function hoiNgay(cauHoi) {
+    const c = (cauHoi ?? hoi).trim();
+    if (!c || !dl) return;
+    setHoi(c);
+    setDap(traLoi(c, dl));
+  }
 
   // Admin xem danh sách góp ý đã gửi
   useEffect(() => {
@@ -111,8 +134,11 @@ export default function HelpWidget() {
           </div>
 
           <div className="flex border-b border-line">
+            <TabBtn active={tab === "congno"} onClick={() => setTab("congno")} icon={Wallet}>
+              Hỏi công nợ
+            </TabBtn>
             <TabBtn active={tab === "faq"} onClick={() => setTab("faq")} icon={HelpCircle}>
-              Hỏi đáp nhanh
+              Dùng app
             </TabBtn>
             <TabBtn active={tab === "gopy"} onClick={() => setTab("gopy")} icon={Lightbulb}>
               Góp ý
@@ -120,6 +146,56 @@ export default function HelpWidget() {
           </div>
 
           <div className="flex-1 overflow-auto p-3">
+            {tab === "congno" && (
+              <div className="space-y-2">
+                <div className="flex gap-1.5">
+                  <input
+                    value={hoi}
+                    onChange={(e) => setHoi(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && hoiNgay()}
+                    placeholder="VD: HOWELL còn nợ bao nhiêu? / đợt nào quá hạn?"
+                    className="w-full rounded-lg border border-line bg-page/40 px-3 py-2 text-xs text-ink outline-none focus:border-brand-400"
+                  />
+                  <button
+                    onClick={() => hoiNgay()}
+                    disabled={!dl}
+                    className="shrink-0 rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
+                  >
+                    Hỏi
+                  </button>
+                </div>
+
+                {dangTai && <p className="text-xs italic text-faint">Đang lấy số liệu…</p>}
+
+                {dap && (
+                  <div className="rounded-lg border border-brand-500/40 bg-brand-500/5 p-3">
+                    <div className="mb-1.5 text-xs font-bold text-brand-600">{dap.tieuDe}</div>
+                    <div className="space-y-1">
+                      {dap.dong.filter(Boolean).map((d, i) => (
+                        <div key={i} className="text-[11px] leading-relaxed text-ink">{d}</div>
+                      ))}
+                    </div>
+                    {dap.ghiChu && <div className="mt-1 text-[10px] italic text-faint">{dap.ghiChu}</div>}
+                  </div>
+                )}
+
+                <div className="pt-1">
+                  <div className="mb-1 text-[11px] font-semibold uppercase text-faint">Câu hỏi thường dùng</div>
+                  <div className="space-y-1">
+                    {GOI_Y.map((g) => (
+                      <button
+                        key={g}
+                        onClick={() => hoiNgay(g)}
+                        disabled={!dl}
+                        className="w-full rounded-lg border border-line px-2.5 py-1.5 text-left text-[11px] text-sub hover:border-brand-400 hover:text-brand-600 disabled:opacity-50"
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
             {tab === "faq" && (
               <div className="space-y-1.5">
                 {FAQ.map((f, i) => (

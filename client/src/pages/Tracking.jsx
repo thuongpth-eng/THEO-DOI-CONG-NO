@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import {
   Plus,
   Search,
@@ -27,6 +27,7 @@ import {
   receivable,
 } from "../lib/models";
 import { slug, yearOf } from "../lib/contractsUtil";
+import { useExtraYears, NAM_GOI_Y } from "../lib/useYears";
 import Modal, { Field, Input, Textarea, Select, Btn } from "../components/Modal";
 import Stepper from "../components/shared/Stepper";
 import LoadingState from "../components/shared/LoadingState";
@@ -115,14 +116,7 @@ const emptyForm = {
 
 const STATUS_OPTS = STATUS_NAMES.map((n, i) => ({ value: i, label: n }));
 
-// Nơi lưu các năm người dùng tự thêm (năm chưa có hợp đồng nào)
-const LS_EXTRA_YEARS = "hpc_extra_years_v1";
 
-// Năm gợi ý sẵn trong ô "chuyển năm" của hợp đồng
-const NAM_GOI_Y = (() => {
-  const n = new Date().getFullYear();
-  return [n - 1, n, n + 1, n + 2].map(String);
-})();
 
 // Cộng n ngày vào ngày ISO (yyyy-mm-dd) → trả yyyy-mm-dd (rỗng nếu không hợp lệ)
 function addDays(iso, n) {
@@ -178,15 +172,8 @@ export default function Tracking({ summary = false, embedded = false }) {
   const [editCt, setEditCt] = useState(null); // id hợp đồng đang sửa (null = thêm mới)
   const [preDots, setPreDots] = useState([]); // các đợt đọc được từ file công nợ (chờ Lưu)
   const [reading, setReading] = useState("");
-  // Năm do người dùng thêm (chưa có hợp đồng nào) — lưu lại để không mất khi tải lại trang
-  const [extraYears, setExtraYears] = useState(() => {
-    try {
-      const v = JSON.parse(localStorage.getItem(LS_EXTRA_YEARS) || "[]");
-      return Array.isArray(v) ? v.filter((y) => /^\d{4}$/.test(String(y))) : [];
-    } catch {
-      return [];
-    }
-  });
+  // Năm do người dùng thêm (chưa có hợp đồng nào) — dùng chung với Kho lưu trữ
+  const { extraYears, themNam, doiNam, xoaNam } = useExtraYears();
   const [yearModal, setYearModal] = useState(null); // { mode: 'add' | 'edit', value }
   const [yearBusy, setYearBusy] = useState(false);
   const [fileBuf, setFileBuf] = useState(null); // giữ file đã úp để đổi công trình
@@ -296,16 +283,6 @@ export default function Tracking({ summary = false, embedded = false }) {
     setModal(true);
   }
 
-  // Lưu danh sách năm tự thêm để không mất khi tải lại trang
-  function luuExtraYears(list) {
-    setExtraYears(list);
-    try {
-      localStorage.setItem(LS_EXTRA_YEARS, JSON.stringify(list));
-    } catch {
-      /* bộ nhớ trình duyệt bị chặn — bỏ qua */
-    }
-  }
-
   // Xóa thẻ năm rỗng (năm chưa có hợp đồng nào)
   function delYear(y) {
     const soHD = enriched.filter((c) => c.year === y).length;
@@ -314,7 +291,7 @@ export default function Tracking({ summary = false, embedded = false }) {
         `Năm ${y} đang có ${soHD} hợp đồng nên không xóa được.\nSếp chuyển hoặc xóa các hợp đồng đó trước, hoặc bấm ✏️ để đổi năm.`
       );
     if (!window.confirm(`Xóa thẻ năm ${y}? (Năm này chưa có hợp đồng nào)`)) return;
-    luuExtraYears(extraYears.filter((x) => x !== y));
+    xoaNam(y);
     setYear("");
   }
 
@@ -323,7 +300,7 @@ export default function Tracking({ summary = false, embedded = false }) {
     const y = String(yearModal?.value || "").trim();
     if (!/^\d{4}$/.test(y)) return alert("Năm phải là 4 chữ số, ví dụ 2027.");
     if (yearModal.mode === "add") {
-      luuExtraYears(extraYears.includes(y) ? extraYears : [...extraYears, y]);
+      themNam(y);
       setYear(y);
       setYearModal(null);
       return;
@@ -332,8 +309,7 @@ export default function Tracking({ summary = false, embedded = false }) {
     const list = enriched.filter((c) => c.year === activeYear);
     // Năm rỗng (do tự thêm) → chỉ cần đổi nhãn năm, không có hợp đồng nào phải sửa
     if (list.length === 0) {
-      const conLai = extraYears.filter((x) => x !== activeYear);
-      luuExtraYears(conLai.includes(y) ? conLai : [...conLai, y]);
+      doiNam(activeYear, y);
       setYear(y);
       setYearModal(null);
       return;

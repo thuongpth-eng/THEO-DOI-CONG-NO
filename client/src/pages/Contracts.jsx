@@ -13,10 +13,13 @@ import {
   Paperclip,
   X,
   FileText,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import api from "../lib/data";
 import { fmtDate, outstanding, daysLate } from "../lib/models";
 import { slug, yearOf } from "../lib/contractsUtil";
+import { useExtraYears, NAM_GOI_Y } from "../lib/useYears";
 import Modal, { Field, Input, Textarea, Select, Btn } from "../components/Modal";
 import Stepper from "../components/shared/Stepper";
 import PageHeader from "../components/shared/PageHeader";
@@ -63,6 +66,9 @@ export default function Contracts() {
   const [year, setYear] = useState(null);
   const [yearOpen, setYearOpen] = useState(true);
   const [openCus, setOpenCus] = useState({});
+  const { extraYears, themNam, doiNam, xoaNam } = useExtraYears();
+  const [yearModal, setYearModal] = useState(null); // { mode: 'add' | 'edit', value }
+  const [yearBusy, setYearBusy] = useState(false);
 
   // Modal thêm HĐ/PL
   const [modal, setModal] = useState(false);
@@ -169,14 +175,68 @@ export default function Contracts() {
   );
 
   const years = useMemo(() => {
-    const ys = [...new Set(enriched.map((c) => c.year))];
+    const ys = [...new Set([...enriched.map((c) => c.year), ...extraYears])];
     return ys.sort((a, b) => String(b).localeCompare(String(a)));
-  }, [enriched]);
+  }, [enriched, extraYears]);
   const activeYear = year && years.includes(year) ? year : years[0];
 
   if (loading) return <LoadingState />;
 
   const inYear = enriched.filter((c) => c.year === activeYear);
+
+  // ----- Quản lý năm: thêm / sửa / xóa / chuyển hợp đồng sang năm khác -----
+  async function saveYear() {
+    const y = String(yearModal?.value || "").trim();
+    if (!/^\d{4}$/.test(y)) return alert("Năm phải là 4 chữ số, ví dụ 2027.");
+    if (yearModal.mode === "add") {
+      themNam(y);
+      setYear(y);
+      setYearModal(null);
+      return;
+    }
+    const list = enriched.filter((c) => c.year === activeYear);
+    if (list.length === 0) {
+      doiNam(activeYear, y);
+      setYear(y);
+      setYearModal(null);
+      return;
+    }
+    if (
+      !window.confirm(
+        `Chuyển ${list.length} hợp đồng từ năm ${activeYear} sang năm ${y}?\n(Chỉ đổi năm quản lý, không đổi số hợp đồng.)`
+      )
+    )
+      return;
+    setYearBusy(true);
+    try {
+      for (const c of list) await api.updateContract(c.id, { nam: y });
+      setYear(y);
+      setYearModal(null);
+      await reload();
+    } catch (e) {
+      alert("Không đổi được năm: " + (e?.message || e));
+    } finally {
+      setYearBusy(false);
+    }
+  }
+
+  function delYear(y) {
+    const soHD = enriched.filter((c) => c.year === y).length;
+    if (soHD > 0)
+      return alert(
+        `Năm ${y} đang có ${soHD} hợp đồng nên không xóa được.\nSếp chuyển các hợp đồng sang năm khác trước, hoặc bấm ✏️ để đổi năm.`
+      );
+    if (!window.confirm(`Xóa thẻ năm ${y}? (Năm này chưa có hợp đồng nào)`)) return;
+    xoaNam(y);
+    setYear("");
+  }
+
+  async function moveContractYear(c, y) {
+    if (!/^\d{4}$/.test(String(y))) return;
+    await api.updateContract(c.id, { nam: String(y) });
+    setYear(String(y));
+    await reload();
+  }
 
   // Gom theo công ty (chủ đầu tư)
   const groups = [];
@@ -305,7 +365,7 @@ export default function Contracts() {
           <span className="text-xs text-navdim">
             {byCus.size} công ty · {inYear.length} hợp đồng/phụ lục · bấm để xổ ra / thu gọn
           </span>
-          <div className="flex gap-1">
+          <div className="flex flex-wrap items-center gap-1">
             {years.map((y) => (
               <button
                 key={y}
@@ -317,6 +377,41 @@ export default function Contracts() {
                 {y}
               </button>
             ))}
+            {canEdit && (
+              <>
+                <button
+                  onClick={() => setYearModal({ mode: "add", value: "" })}
+                  title="Thêm năm mới"
+                  className="ml-1 flex items-center gap-1 rounded-md border border-white/20 px-2 py-1 text-xs font-bold text-navdim hover:bg-navhover hover:text-navfg"
+                >
+                  <Plus size={13} /> Thêm năm
+                </button>
+                <button
+                  onClick={() => setYearModal({ mode: "edit", value: activeYear })}
+                  title={
+                    inYear.length
+                      ? `Sửa năm ${activeYear} (đổi năm cho ${inYear.length} hợp đồng)`
+                      : `Sửa năm ${activeYear}`
+                  }
+                  className="rounded-md border border-white/20 px-2 py-1 text-xs font-bold text-navdim hover:bg-navhover hover:text-navfg"
+                >
+                  <Pencil size={13} />
+                </button>
+                <button
+                  onClick={() => delYear(activeYear)}
+                  title={
+                    inYear.length
+                      ? `Năm ${activeYear} đang có ${inYear.length} hợp đồng — không xóa được`
+                      : `Xóa thẻ năm ${activeYear}`
+                  }
+                  className={`rounded-md border border-white/20 px-2 py-1 text-xs font-bold ${
+                    inYear.length ? "text-navdim/40" : "text-navdim hover:bg-navhover hover:text-danger"
+                  }`}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -431,6 +526,29 @@ export default function Contracts() {
                               </div>
                             )}
                           </div>
+                          {canEdit && (
+                            <div
+                              className="flex shrink-0 items-center gap-1.5"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <span className="text-[10.5px] font-semibold uppercase text-faint">Năm</span>
+                              <select
+                                value={activeYear}
+                                onChange={(e) => moveContractYear(c, e.target.value)}
+                                title="Chuyển hợp đồng này sang năm khác"
+                                className="h-7 rounded-lg border border-line bg-page px-1.5 text-[11px] font-semibold text-sub outline-none hover:border-brand-400 hover:text-brand-500"
+                              >
+                                {[...new Set([...years, ...NAM_GOI_Y])]
+                                  .filter((y) => /^\d{4}$/.test(String(y)))
+                                  .sort((a, b) => String(a).localeCompare(String(b)))
+                                  .map((y) => (
+                                    <option key={y} value={y}>
+                                      {y}
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
+                          )}
                         </div>
                         {/* Dãy đợt Đ1..Đn */}
                         <div className="mt-3">
@@ -455,6 +573,39 @@ export default function Contracts() {
           )}
         </div>
       )}
+
+      {/* Modal thêm / sửa năm */}
+      <Modal
+        open={!!yearModal}
+        onClose={() => setYearModal(null)}
+        title={yearModal?.mode === "add" ? "Thêm năm mới" : `Sửa năm ${activeYear}`}
+        footer={
+          <>
+            <Btn variant="ghost" onClick={() => setYearModal(null)}>Hủy</Btn>
+            <Btn onClick={saveYear} disabled={yearBusy}>
+              {yearBusy ? "Đang lưu…" : yearModal?.mode === "add" ? "Thêm năm" : "Đổi năm"}
+            </Btn>
+          </>
+        }
+      >
+        <Field
+          label="Năm (4 chữ số) *"
+          hint={
+            yearModal?.mode === "add"
+              ? "Thẻ năm hiện ngay để Sếp thêm hợp đồng vào."
+              : inYear.length
+              ? `Tất cả ${inYear.length} hợp đồng đang ở năm ${activeYear} sẽ chuyển sang năm mới.`
+              : "Năm này chưa có hợp đồng — chỉ đổi nhãn năm."
+          }
+        >
+          <Input
+            value={yearModal?.value || ""}
+            onChange={(e) => setYearModal((m) => ({ ...m, value: e.target.value }))}
+            placeholder="2027"
+            maxLength={4}
+          />
+        </Field>
+      </Modal>
 
       {/* Modal thêm HĐ/PL */}
       <Modal

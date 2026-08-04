@@ -57,6 +57,33 @@ export function Panel({ title, sub, children, className = "", extra }) {
 
 const pct = (v, base) => (base > 0 ? Math.round((v / base) * 1000) / 10 : 0);
 
+// Rút tên chủ đầu tư thành nhãn ngắn kiểu "Cty Howell" (tên đầy đủ vẫn hiện ở tooltip)
+// Các từ chung cần bỏ (so theo từng từ nên không lỗi với chữ có dấu)
+const BO_TU = new Set([
+  "CÔNG", "TY", "CTY", "TNHH", "MTV", "MỘT", "THÀNH", "VIÊN", "CỔ", "PHẦN", "CP",
+  "NGHIỆP", "CHÍNH", "XÁC", "CƠ", "KHÍ", "THƯƠNG", "MẠI", "SẢN", "XUẤT",
+  "DỊCH", "VỤ", "XÂY", "DỰNG", "TECHNOLOGY", "MANUFACTURING", "INDUSTRIAL",
+  "INDUSTRY", "VIETNAMTEX", "PRECISION", "VIỆT", "NAM", "VIETNAM", "CO", "LTD",
+]);
+export function tenNganCDT(ten) {
+  const s = String(ten || "")
+    .toUpperCase()
+    .replace(/\(([^)]*)\)/g, " ") // bỏ phần trong ngoặc: (VIETNAM), (VIET NAM)…
+    .replace(/[.,]/g, " ");
+  const tu = s
+    .split(/\s+/)
+    .filter((w) => w && !BO_TU.has(w))
+    .slice(0, 2); // giữ tối đa 2 từ thương hiệu
+  const goc = tu.join(" ");
+  if (!goc) return String(ten || "").slice(0, 14);
+  // Chữ hoa đầu mỗi từ: HOWELL → Howell, CHIEN YI → Chien Yi
+  const dep = goc
+    .split(" ")
+    .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+    .join(" ");
+  return `Cty ${dep}`;
+}
+
 // Chiều cao biểu đồ co theo màn hình: màn thấp thì thu nhỏ, màn cao thì cao hơn
 // → Dashboard luôn vừa 1 màn hình ở mức thu phóng 100%.
 const CHART_H = "h-[clamp(118px,14.5vh,196px)] w-full";
@@ -177,16 +204,24 @@ export function DebtByCustomer({ customerData }) {
   const data = customerData
     .filter((c) => c.outstanding > 0)
     .slice(0, 6)
-    .map((c) => ({ name: c.name.replace(/^CÔNG TY (TNHH )?/i, ""), value: Math.round((c.outstanding / 1e9) * 10) / 10 }));
+    .map((c) => ({
+      name: tenNganCDT(c.name),
+      full: c.name,
+      value: Math.round((c.outstanding / 1e9) * 10) / 10,
+    }));
   return (
     <Panel title="1. Công nợ theo chủ đầu tư" sub="Đơn vị: tỷ đồng">
       <div className={CHART_H}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} layout="vertical" margin={{ left: 8, right: 28 }}>
+        <BarChart data={data} layout="vertical" margin={{ left: 4, right: 30 }}>
           <CartesianGrid horizontal={false} stroke="var(--line)" />
           <XAxis type="number" tick={{ fontSize: 11, fill: "var(--faint)" }} />
-          <YAxis type="category" dataKey="name" width={96} tick={{ fontSize: 10, fill: "var(--sub)" }} />
-          <Tooltip formatter={(v) => v + " tỷ"} contentStyle={tip(isDark)} />
+          <YAxis type="category" dataKey="name" width={92} interval={0} tick={{ fontSize: 11, fill: "var(--sub)" }} />
+          <Tooltip
+            formatter={(v) => v + " tỷ"}
+            labelFormatter={(l, p) => p?.[0]?.payload?.full || l}
+            contentStyle={tip(isDark)}
+          />
           <Bar dataKey="value" fill={BLUE} radius={[0, 4, 4, 0]} isAnimationActive={false}>
             <LabelList dataKey="value" position="right" fontSize={11} fill="var(--sub)" />
           </Bar>
@@ -400,7 +435,7 @@ export function TopDebtors({ customerData }) {
           {rows.map((c, i) => (
             <tr key={c.id} className="border-b border-line/60 last:border-0">
               <td className="py-1.5 pr-2 text-faint">{i + 1}</td>
-              <td className="py-1.5 pr-2 font-medium text-ink">{c.name.replace(/^CÔNG TY (TNHH )?/i, "")}</td>
+              <td className="py-1.5 pr-2 font-medium text-ink" title={c.name}>{tenNganCDT(c.name)}</td>
               <td className="py-1.5 text-right font-semibold tabular-nums text-ink">{fmtTy(c.outstanding)}</td>
             </tr>
           ))}

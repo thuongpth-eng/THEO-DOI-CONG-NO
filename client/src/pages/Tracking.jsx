@@ -115,6 +115,15 @@ const emptyForm = {
 
 const STATUS_OPTS = STATUS_NAMES.map((n, i) => ({ value: i, label: n }));
 
+// Nơi lưu các năm người dùng tự thêm (năm chưa có hợp đồng nào)
+const LS_EXTRA_YEARS = "hpc_extra_years_v1";
+
+// Năm gợi ý sẵn trong ô "chuyển năm" của hợp đồng
+const NAM_GOI_Y = (() => {
+  const n = new Date().getFullYear();
+  return [n - 1, n, n + 1, n + 2].map(String);
+})();
+
 // Cộng n ngày vào ngày ISO (yyyy-mm-dd) → trả yyyy-mm-dd (rỗng nếu không hợp lệ)
 function addDays(iso, n) {
   if (!iso) return "";
@@ -169,7 +178,15 @@ export default function Tracking({ summary = false, embedded = false }) {
   const [editCt, setEditCt] = useState(null); // id hợp đồng đang sửa (null = thêm mới)
   const [preDots, setPreDots] = useState([]); // các đợt đọc được từ file công nợ (chờ Lưu)
   const [reading, setReading] = useState("");
-  const [extraYears, setExtraYears] = useState([]); // năm do người dùng thêm (chưa có HĐ nào)
+  // Năm do người dùng thêm (chưa có hợp đồng nào) — lưu lại để không mất khi tải lại trang
+  const [extraYears, setExtraYears] = useState(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(LS_EXTRA_YEARS) || "[]");
+      return Array.isArray(v) ? v.filter((y) => /^\d{4}$/.test(String(y))) : [];
+    } catch {
+      return [];
+    }
+  });
   const [yearModal, setYearModal] = useState(null); // { mode: 'add' | 'edit', value }
   const [yearBusy, setYearBusy] = useState(false);
   const [fileBuf, setFileBuf] = useState(null); // giữ file đã úp để đổi công trình
@@ -279,18 +296,48 @@ export default function Tracking({ summary = false, embedded = false }) {
     setModal(true);
   }
 
-  // Thêm năm mới (hiện thẻ năm để thêm HĐ vào) hoặc đổi năm cho các HĐ đang ở năm đó
+  // Lưu danh sách năm tự thêm để không mất khi tải lại trang
+  function luuExtraYears(list) {
+    setExtraYears(list);
+    try {
+      localStorage.setItem(LS_EXTRA_YEARS, JSON.stringify(list));
+    } catch {
+      /* bộ nhớ trình duyệt bị chặn — bỏ qua */
+    }
+  }
+
+  // Xóa thẻ năm rỗng (năm chưa có hợp đồng nào)
+  function delYear(y) {
+    const soHD = enriched.filter((c) => c.year === y).length;
+    if (soHD > 0)
+      return alert(
+        `Năm ${y} đang có ${soHD} hợp đồng nên không xóa được.\nSếp chuyển hoặc xóa các hợp đồng đó trước, hoặc bấm ✏️ để đổi năm.`
+      );
+    if (!window.confirm(`Xóa thẻ năm ${y}? (Năm này chưa có hợp đồng nào)`)) return;
+    luuExtraYears(extraYears.filter((x) => x !== y));
+    setYear("");
+  }
+
+  // Thêm năm mới (hiện thẻ năm để thêm HĐ vào) hoặc đổi năm
   async function saveYear() {
     const y = String(yearModal?.value || "").trim();
     if (!/^\d{4}$/.test(y)) return alert("Năm phải là 4 chữ số, ví dụ 2027.");
     if (yearModal.mode === "add") {
-      setExtraYears((p) => (p.includes(y) ? p : [...p, y]));
+      luuExtraYears(extraYears.includes(y) ? extraYears : [...extraYears, y]);
       setYear(y);
       setYearModal(null);
       return;
     }
     // Đổi năm: gán trường "nam" cho mọi hợp đồng đang ở năm hiện tại
     const list = enriched.filter((c) => c.year === activeYear);
+    // Năm rỗng (do tự thêm) → chỉ cần đổi nhãn năm, không có hợp đồng nào phải sửa
+    if (list.length === 0) {
+      const conLai = extraYears.filter((x) => x !== activeYear);
+      luuExtraYears(conLai.includes(y) ? conLai : [...conLai, y]);
+      setYear(y);
+      setYearModal(null);
+      return;
+    }
     if (
       !window.confirm(
         `Chuyển ${list.length} hợp đồng từ năm ${activeYear} sang năm ${y}?\n(Chỉ đổi năm quản lý, không đổi số hợp đồng.)`
@@ -309,6 +356,14 @@ export default function Tracking({ summary = false, embedded = false }) {
     } finally {
       setYearBusy(false);
     }
+  }
+
+  // Di chuyển 1 hợp đồng sang năm khác
+  async function moveContractYear(c, y) {
+    if (!/^\d{4}$/.test(String(y))) return;
+    await api.updateContract(c.id, { nam: String(y), updatedAt: nowISO(), updatedBy: user?.name || "" });
+    setYear(String(y)); // nhảy sang năm vừa chuyển để Sếp thấy ngay
+    await reload();
   }
 
   // Xóa 1 hợp đồng + toàn bộ đợt của nó
@@ -694,15 +749,32 @@ export default function Tracking({ summary = false, embedded = false }) {
                 >
                   <Plus size={13} /> Thêm năm
                 </button>
-                {inYear.length > 0 && (
-                  <button
-                    onClick={() => setYearModal({ mode: "edit", value: activeYear })}
-                    title={`Đổi năm cho ${inYear.length} hợp đồng đang ở năm ${activeYear}`}
-                    className="rounded-md border border-white/20 px-2 py-1 text-xs font-bold text-navdim hover:bg-navhover hover:text-navfg"
-                  >
-                    <Pencil size={13} />
-                  </button>
-                )}
+                <button
+                  onClick={() => setYearModal({ mode: "edit", value: activeYear })}
+                  title={
+                    inYear.length
+                      ? `Sửa năm ${activeYear} (đổi năm cho ${inYear.length} hợp đồng)`
+                      : `Sửa năm ${activeYear}`
+                  }
+                  className="rounded-md border border-white/20 px-2 py-1 text-xs font-bold text-navdim hover:bg-navhover hover:text-navfg"
+                >
+                  <Pencil size={13} />
+                </button>
+                <button
+                  onClick={() => delYear(activeYear)}
+                  title={
+                    inYear.length
+                      ? `Năm ${activeYear} đang có ${inYear.length} hợp đồng — không xóa được`
+                      : `Xóa thẻ năm ${activeYear}`
+                  }
+                  className={`rounded-md border border-white/20 px-2 py-1 text-xs font-bold ${
+                    inYear.length
+                      ? "text-navdim/40"
+                      : "text-navdim hover:bg-navhover hover:text-danger"
+                  }`}
+                >
+                  <Trash2 size={13} />
+                </button>
               </>
             )}
           </div>
@@ -815,6 +887,22 @@ export default function Tracking({ summary = false, embedded = false }) {
                             </div>
                             {canEdit && !summary && (
                               <div className="flex items-center gap-1">
+                                {/* Chuyển hợp đồng sang năm khác */}
+                                <select
+                                  value={activeYear}
+                                  onChange={(e) => moveContractYear(c, e.target.value)}
+                                  title="Chuyển hợp đồng này sang năm khác"
+                                  className="h-7 rounded-lg border border-line bg-card px-1.5 text-[11px] font-semibold text-sub outline-none hover:border-brand-400 hover:text-brand-500"
+                                >
+                                  {[...new Set([...years, ...NAM_GOI_Y])]
+                                    .filter((y) => /^\d{4}$/.test(String(y)))
+                                    .sort((a, b) => String(a).localeCompare(String(b)))
+                                    .map((y) => (
+                                      <option key={y} value={y}>
+                                        {y}
+                                      </option>
+                                    ))}
+                                </select>
                                 <button
                                   onClick={() => openEditCt(c)}
                                   className="rounded-lg p-1.5 text-faint hover:bg-hover hover:text-accent"

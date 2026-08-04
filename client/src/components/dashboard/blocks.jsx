@@ -207,29 +207,29 @@ export function DebtStructure({ kpis }) {
   ].filter((d) => d.value > 0);
   return (
     <Panel title="2. Cơ cấu công nợ" sub="Đơn vị: tỷ đồng">
-      <div className="flex items-center gap-2">
-        <div className={`relative flex-1 ${CHART_H}`}>
+      <div className="flex items-center gap-1.5">
+        <div className={`relative min-w-0 flex-[1.25] ${CHART_H}`}>
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={data} dataKey="value" nameKey="name" innerRadius="58%" outerRadius="88%" paddingAngle={2} isAnimationActive={false}>
+            <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+              <Pie data={data} dataKey="value" nameKey="name" innerRadius="66%" outerRadius="99%" paddingAngle={2} isAnimationActive={false}>
                 {data.map((d, i) => (<Cell key={i} fill={d.fill} stroke="var(--card)" strokeWidth={2} />))}
               </Pie>
               <Tooltip formatter={(v) => fmtVND(v)} contentStyle={tip(isDark)} />
             </PieChart>
           </ResponsiveContainer>
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-[11px] uppercase text-faint">Tổng công nợ</span>
-            <span className="text-xl font-bold text-ink">{fmtTy(kpis.outstanding)}</span>
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center leading-none">
+            <span className="text-[8.5px] uppercase tracking-wide text-faint">Tổng công nợ</span>
+            <span className="mt-0.5 text-[15px] font-bold text-ink">{fmtTy(kpis.outstanding)}</span>
           </div>
         </div>
-        <div className="shrink-0 space-y-2 text-xs">
+        <div className="min-w-0 shrink space-y-1.5 text-[11px]">
           <div>
-            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: GREEN }} /> Đã thanh toán</div>
-            <div className="pl-4 font-semibold text-ink">{fmtTy(kpis.totalPaid)} ({pct(kpis.totalPaid, base)}%)</div>
+            <div className="flex items-center gap-1"><span className="h-2 w-2 shrink-0 rounded-full" style={{ background: GREEN }} /> <span className="truncate">Đã thanh toán</span></div>
+            <div className="pl-3 font-semibold text-ink">{fmtTy(kpis.totalPaid)} <span className="font-normal text-faint">({pct(kpis.totalPaid, base)}%)</span></div>
           </div>
           <div>
-            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: ORANGE }} /> Chờ thanh toán</div>
-            <div className="pl-4 font-semibold text-ink">{fmtTy(kpis.outstanding)} ({pct(kpis.outstanding, base)}%)</div>
+            <div className="flex items-center gap-1"><span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ORANGE }} /> <span className="truncate">Chờ thanh toán</span></div>
+            <div className="pl-3 font-semibold text-ink">{fmtTy(kpis.outstanding)} <span className="font-normal text-faint">({pct(kpis.outstanding, base)}%)</span></div>
           </div>
         </div>
       </div>

@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { fmtVND, fmtTy, outstanding, daysLate } from "../../lib/models";
 import { useTheme } from "../../context/ThemeContext";
+import MoneyBurst, { useMoneyBurst } from "./MoneyBurst";
 
 const BLUE = "#0969A7";
 const GREEN = "#60BB46";
@@ -135,24 +136,37 @@ export function KpiCards({ kpis, installments }) {
   };
   return (
     <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3 xl:grid-cols-6">
-      {cards.map((c) => {
-        const t = TONE[c.tone];
-        return (
-          <div key={c.label} className="rounded-xl border border-line bg-card px-2.5 py-2 shadow-card">
-            <div className="flex items-center gap-2">
-              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${t.ic}`}><c.icon size={15} /></span>
-              <span className="text-[10.5px] font-semibold uppercase leading-tight text-faint">{c.label}</span>
-            </div>
-            <div className={`mt-1.5 text-lg font-bold leading-tight tabular-nums ${t.v}`}>{c.value}</div>
-            {c.bar != null && (
-              <div className="mt-1 h-1 overflow-hidden rounded-full bg-hover">
-                <div className="h-full rounded-full" style={{ width: `${Math.min(100, c.bar)}%`, background: t.bar }} />
-              </div>
-            )}
-            <div className="mt-0.5 text-[10px] text-faint">{c.sub}</div>
-          </div>
-        );
-      })}
+      {cards.map((c) => (
+        <KpiCard key={c.label} c={c} t={TONE[c.tone]} />
+      ))}
+    </div>
+  );
+}
+
+// 1 thẻ KPI — trỏ chuột vào là "tiền bay lên" (tiền đang về)
+function KpiCard({ c, t }) {
+  const { bits, onEnter, pulse } = useMoneyBurst({ so: 7 });
+  return (
+    <div
+      onMouseEnter={onEnter}
+      className="relative overflow-hidden rounded-xl border border-line bg-card px-2.5 py-2 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-400/60 hover:shadow-lg"
+    >
+      <MoneyBurst bits={bits} />
+      <div className="flex items-center gap-2">
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${t.ic}`}><c.icon size={15} /></span>
+        <span className="text-[10.5px] font-semibold uppercase leading-tight text-faint">{c.label}</span>
+      </div>
+      <div
+        className={`mt-1.5 text-lg font-bold leading-tight tabular-nums ${t.v} ${pulse ? "money-pulse" : ""}`}
+      >
+        {c.value}
+      </div>
+      {c.bar != null && (
+        <div className="mt-1 h-1 overflow-hidden rounded-full bg-hover">
+          <div className="h-full rounded-full" style={{ width: `${Math.min(100, c.bar)}%`, background: t.bar }} />
+        </div>
+      )}
+      <div className="mt-0.5 text-[10px] text-faint">{c.sub}</div>
     </div>
   );
 }
@@ -197,7 +211,7 @@ export function DebtStructure({ kpis }) {
         <div className={`relative flex-1 ${CHART_H}`}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={data} dataKey="value" nameKey="name" innerRadius={52} outerRadius={78} paddingAngle={2} isAnimationActive={false}>
+              <Pie data={data} dataKey="value" nameKey="name" innerRadius="58%" outerRadius="88%" paddingAngle={2} isAnimationActive={false}>
                 {data.map((d, i) => (<Cell key={i} fill={d.fill} stroke="var(--card)" strokeWidth={2} />))}
               </Pie>
               <Tooltip formatter={(v) => fmtVND(v)} contentStyle={tip(isDark)} />
@@ -294,40 +308,50 @@ export function PriorityProjects({ projects, className = "" }) {
   return (
     <Panel title="5. Dự án cần ưu tiên xử lý" className={className}>
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-        {projects.map((p) => {
-          const badge =
-            p.st === "overdue"
-              ? { t: p.dueLabel || "Quá hạn", c: "text-danger border-danger/40 bg-danger/5" }
-              : p.dueLabel
-              ? { t: p.dueLabel, c: "text-warning border-warning/40 bg-warning/5" }
-              : { t: "Đang thực hiện", c: "text-accent border-accent/40 bg-accent/5" };
-          return (
-            <div key={p.id} className="rounded-xl border border-line bg-page/40 px-2.5 py-1.5">
-              <div className="flex items-center justify-between gap-1.5">
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <Building2 size={13} className="shrink-0 text-brand-500" />
-                  <span className="truncate text-[12.5px] font-bold text-ink">{p.name}</span>
-                </div>
-                {p.hs && <span className="shrink-0 text-[10px] text-faint">{p.hs}</span>}
-              </div>
-              <div className="mt-1 flex items-center justify-between gap-1.5">
-                <span className={`truncate rounded-full border px-1.5 py-0 text-[9.5px] font-medium ${badge.c}`}>{badge.t}</span>
-                <span className="shrink-0 text-[10px] font-semibold text-brand-500">{p.pctPaid}%</span>
-              </div>
-              <div className="mt-1 h-1 overflow-hidden rounded-full bg-hover">
-                <div className="h-full rounded-full bg-brand-500" style={{ width: `${p.pctPaid}%` }} />
-              </div>
-              <div className="mt-1 space-y-0 text-[10.5px] leading-[1.45]">
-                <div className="flex justify-between"><span className="text-faint">Giá trị HĐ</span><span className="tabular-nums text-sub">{fmtTy(p.value)}</span></div>
-                <div className="flex justify-between"><span className="text-faint">Đã thu</span><span className="tabular-nums text-brand-500">{fmtTy(p.paid)}</span></div>
-                <div className="flex justify-between"><span className="text-faint">Còn nợ</span><span className="font-semibold tabular-nums text-ink">{fmtTy(p.os)}</span></div>
-              </div>
-            </div>
-          );
-        })}
+        {projects.map((p) => (
+          <ProjectCard key={p.id} p={p} />
+        ))}
         {projects.length === 0 && <p className="py-4 text-center text-xs text-faint">Không có dự án.</p>}
       </div>
     </Panel>
+  );
+}
+
+// 1 thẻ dự án — trỏ vào cũng có tiền bay lên
+function ProjectCard({ p }) {
+  const { bits, onEnter, pulse } = useMoneyBurst({ so: 6 });
+  const badge =
+    p.st === "overdue"
+      ? { t: p.dueLabel || "Quá hạn", c: "text-danger border-danger/40 bg-danger/5" }
+      : p.dueLabel
+      ? { t: p.dueLabel, c: "text-warning border-warning/40 bg-warning/5" }
+      : { t: "Đang thực hiện", c: "text-accent border-accent/40 bg-accent/5" };
+  return (
+    <div
+      onMouseEnter={onEnter}
+      className="relative overflow-hidden rounded-xl border border-line bg-page/40 px-2.5 py-1.5 transition-all duration-200 hover:border-brand-400/60 hover:bg-page/70"
+    >
+      <MoneyBurst bits={bits} />
+      <div className="flex items-center justify-between gap-1.5">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Building2 size={13} className="shrink-0 text-brand-500" />
+          <span className="truncate text-[12.5px] font-bold text-ink">{p.name}</span>
+        </div>
+        {p.hs && <span className="shrink-0 text-[10px] text-faint">{p.hs}</span>}
+      </div>
+      <div className="mt-1 flex items-center justify-between gap-1.5">
+        <span className={`truncate rounded-full border px-1.5 py-0 text-[9.5px] font-medium ${badge.c}`}>{badge.t}</span>
+        <span className="shrink-0 text-[10px] font-semibold text-brand-500">{p.pctPaid}%</span>
+      </div>
+      <div className="mt-1 h-1 overflow-hidden rounded-full bg-hover">
+        <div className="h-full rounded-full bg-brand-500" style={{ width: `${p.pctPaid}%` }} />
+      </div>
+      <div className={`mt-1 space-y-0 text-[10.5px] leading-[1.45] ${pulse ? "money-pulse" : ""}`}>
+        <div className="flex justify-between"><span className="text-faint">Giá trị HĐ</span><span className="tabular-nums text-sub">{fmtTy(p.value)}</span></div>
+        <div className="flex justify-between"><span className="text-faint">Đã thu</span><span className="tabular-nums text-brand-500">{fmtTy(p.paid)}</span></div>
+        <div className="flex justify-between"><span className="text-faint">Còn nợ</span><span className="font-semibold tabular-nums text-ink">{fmtTy(p.os)}</span></div>
+      </div>
+    </div>
   );
 }
 
